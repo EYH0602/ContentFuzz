@@ -1,0 +1,17 @@
+[project]
+name = "contentfuzz"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Yifeng He", email = "yfhe.prsn@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+contentfuzz = "contentfuzz:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
