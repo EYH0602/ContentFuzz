@@ -3,11 +3,17 @@ name = "contentfuzz"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Yifeng He", email = "yfhe.prsn@gmail.com" }
-]
+authors = [{ name = "Yifeng He", email = "yfhe.prsn@gmail.com" }]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "datasets>=4.0.0",
+    "dotenv>=0.9.9",
+    "fire>=0.7.1",
+    "numpy>=2.3.2",
+    "openai==1.58.1",
+    "pandas>=2.3.2",
+    "structured-logprobs>=0.1.5",
+]
 
 [project.scripts]
 contentfuzz = "contentfuzz:main"
@@ -15,3 +21,52 @@ contentfuzz = "contentfuzz:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pylint.messages_control]
+disable = [
+    "raw-checker-failed",
+    "bad-inline-option",
+    "locally-disabled",
+    "file-ignored",
+    "suppressed-message",
+    "useless-suppression",
+    "deprecated-pragma",
+    "use-symbolic-message-instead",
+    "logging-fstring-interpolation",
+    "unused-import",
+    "ungrouped-imports",
+    "subprocess-run-check",
+    "too-many-instance-attributes",
+    "missing-module-docstring",
+    "unnecessary-ellipsis",          # pylint cannot work with typed Protocol
+    "missing-module-docstring",
+]
+fail-under = 9
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = true
+allow_redefinition = false
+ignore_errors = false
+implicit_reexport = false
+local_partial_types = true
+no_implicit_optional = true
+strict_equality = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = false
+plugins = ["returns.contrib.mypy.returns_plugin"]
+
+# [tool.pytest.ini_options]
+# pytest_plugins = ['pytest_profiling']
+
+[dependency-groups]
+dev = ["pytest-cov>=6.2.1", "pytest-profiling>=1.8.1", "pytest-xdist>=3.8.0"]
+
+[tool.ruff]
+exclude = ["tests/"]
