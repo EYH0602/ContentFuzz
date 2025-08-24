@@ -1,0 +1,3 @@
+[submodule "C-STANCE"]
+	path = C-STANCE
+	url = https://github.com/chenyez/C-STANCE.git
