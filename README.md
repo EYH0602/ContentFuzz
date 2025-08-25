@@ -18,7 +18,7 @@ We use Python 3.12.
 We recommend using [uv](https://docs.astral.sh/uv/getting-started/installation/) to manage your Python dependencies.
 
 ```sh
-cd TF-Bench
+cd ContentFuzz
 uv sync # create a virtual environment, and install dependencies
 ```
 
