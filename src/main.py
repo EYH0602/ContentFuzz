@@ -14,11 +14,10 @@ def main(input_file_path: str) -> None:
     analyzer = OpenAIAnalyzer()
     for _, row in dataset.iterrows():
         text = row["Text"]
-        result = analyzer.analyze(text)
+        result, prob = analyzer.analyze(text)
         print(
-            f"Text: {text}\nStance: {result.stance}\nRationale: {result.rationale}\nConfidence: {result.prob}\n"
+            f"Text: {text}\nStance: {result.label}\nRationale: {result.rationale}\nConfidence: {prob}\n"
         )
-        exit(1)
 
 
 if __name__ == "__main__":

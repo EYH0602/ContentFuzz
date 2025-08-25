@@ -40,6 +40,7 @@ disable = [
     "missing-module-docstring",
     "unnecessary-ellipsis",          # pylint cannot work with typed Protocol
     "missing-module-docstring",
+    "too-few-public-methods",
 ]
 fail-under = 9
 

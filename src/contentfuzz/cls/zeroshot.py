@@ -6,23 +6,14 @@ from pydantic import BaseModel
 from openai import OpenAI
 from structured_logprobs import add_logprobs
 
-from ._base import AnalysisOutput
+from ._base import AnalysisOutput, StanceOutput
 
-Label = Literal["Favor", "Against", "Neutral"]
 
 INSTRUCTION = """
 You are a precise stance classifier.
 Decide whether the author's attitude is Favor / Against / Neutral.
 Be conservative: if unclear, choose Neutral.
-Return the JSON object only.
 """
-
-
-class Stance(BaseModel):
-    """Classifier response format"""
-
-    label: Label
-    rationale: str
 
 
 class OpenAIAnalyzer:
@@ -52,7 +43,7 @@ class OpenAIAnalyzer:
                 },
             ],
             logprobs=True,
-            response_format=Stance,
+            response_format=StanceOutput,
         )
         chat_completion = add_logprobs(completion)
         response = chat_completion.value
@@ -63,10 +54,6 @@ class OpenAIAnalyzer:
 
         if output is None:
             raise ValueError("OpenAI API returned no output")
-        stance = Stance.model_validate_json(output)
+        stance = StanceOutput.model_validate_json(output)
 
-        return AnalysisOutput(
-            stance=stance.label,
-            rationale=stance.rationale,
-            prob=probs.get("label", None),
-        )
+        return stance, probs.get("label")
