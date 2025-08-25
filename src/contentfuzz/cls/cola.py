@@ -7,8 +7,8 @@ from math import exp
 
 from openai import OpenAI
 from returns.result import safe, Result, ResultE
-from returns.maybe import maybe
 from structured_logprobs import add_logprobs
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ._base import AnalysisOutput, StanceOutput
 from .utils import exp_retry
@@ -74,11 +74,9 @@ class COLA:
         self.model = model
         self.client = OpenAI(api_key=api_key)
 
-    @maybe
+    @safe
     @exp_retry
-    def get_completion_with_role(
-        self, role: str, instruction: str, content: str
-    ) -> str | None:
+    def get_completion_with_role(self, role: str, instruction: str, tweet: str) -> str:
         """Get completion from OpenAI API with specified role.
 
         Args:
@@ -96,18 +94,21 @@ class COLA:
             model=self.model,
             messages=[
                 {"role": "system", "content": f"You are a {role}."},
-                {"role": "user", "content": f"{instruction}\n{content}"},
+                {"role": "user", "content": f"{instruction}\n{tweet}"},
             ],
             temperature=0,
         )
 
         choice = response.choices[0]
+        content: str | None = choice.message.content
+        if content is None:
+            raise ValueError("OpenAI API returned no output")
 
-        return choice.message.content
+        return content
 
-    @maybe
+    @safe
     @exp_retry
-    def get_completion(self, prompt: str) -> str | None:
+    def get_completion(self, prompt: str) -> str:
         """Get completion from OpenAI API.
 
         Args:
@@ -125,20 +126,24 @@ class COLA:
         )
 
         choice = response.choices[0]
-        return choice.message.content
+        content: str | None = choice.message.content
+        if content is None:
+            raise ValueError("OpenAI API returned no output")
 
-    def linguist_analysis(self, tweet: str):
+        return content
+
+    def linguist_analysis(self, tweet: str) -> ResultE[str]:
         """Let an expert linguist analyze the tweet."""
 
         return self.get_completion_with_role("linguist", LINGUIST_INSTRUCTION, tweet)
 
-    def expert_analysis(self, tweet: str, target: str):
+    def expert_analysis(self, tweet: str, target: str) -> ResultE[str]:
         """Let a domain expert analyze the tweet."""
         role = target_role_map.get(target, "expert")
         instruction = EXPERT_INSTRUCTION.format(target=target)
         return self.get_completion_with_role(role, instruction, tweet)
 
-    def user_analysis(self, tweet: str):
+    def user_analysis(self, tweet: str) -> ResultE[str]:
         """Let a heavy social media user analyze the tweet."""
         return self.get_completion_with_role(
             "heavy social media user", TOP_USER_INSTRUCTION, tweet
@@ -152,7 +157,7 @@ class COLA:
         user_response: str,
         target: str,
         stance: str,
-    ):
+    ) -> ResultE[str]:
         """Try to do stance analysis with a given stance"""
         role = target_role_map.get(target, "expert")
         prompt = STANCE_ANALYSIS_INSTRUCTION.format(
