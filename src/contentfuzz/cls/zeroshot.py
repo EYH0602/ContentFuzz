@@ -3,8 +3,10 @@ from math import exp
 
 from openai import OpenAI
 from structured_logprobs import add_logprobs
+from returns.result import safe
 
 from ._base import AnalysisOutput, StanceOutput
+from .utils import exp_retry
 
 
 INSTRUCTION = """
@@ -25,15 +27,20 @@ class OpenAIAnalyzer:
         self.model = model
         self.client = OpenAI(api_key=api_key)
 
-    def analyze(self, text: str) -> AnalysisOutput:
+    @safe
+    @exp_retry
+    def analyze(self, text: str, target: str | None = None) -> AnalysisOutput:
         """Using OpenAI API to analyze the stance of a given text"""
+
+        if target is None:
+            target = "the topic"
 
         completion = self.client.beta.chat.completions.parse(
             model=self.model,
             messages=[
                 {
                     "role": "system",
-                    "content": INSTRUCTION.strip(),
+                    "content": INSTRUCTION,
                 },
                 {
                     "role": "user",
@@ -42,6 +49,7 @@ class OpenAIAnalyzer:
             ],
             logprobs=True,
             response_format=StanceOutput,
+            temperature=0,  # for reproduce
         )
         chat_completion = add_logprobs(completion)
         response = chat_completion.value
@@ -52,6 +60,7 @@ class OpenAIAnalyzer:
 
         if output is None:
             raise ValueError("OpenAI API returned no output")
+
         stance = StanceOutput.model_validate_json(output)
 
         return stance, probs.get("label")
