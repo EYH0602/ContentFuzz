@@ -13,7 +13,9 @@ dependencies = [
     "openai==1.58.1",
     "pandas>=2.3.2",
     "pylint>=3.3.8",
+    "returns[compatible-mypy]>=0.26.0",
     "structured-logprobs>=0.1.5",
+    "tenacity>=9.1.2",
 ]
 
 [project.scripts]
@@ -62,7 +64,7 @@ warn_no_return = true
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = false
-# plugins = ["returns.contrib.mypy.returns_plugin"]
+plugins = ["returns.contrib.mypy.returns_plugin"]
 
 # [tool.pytest.ini_options]
 # pytest_plugins = ['pytest_profiling']
@@ -71,4 +73,4 @@ warn_unused_ignores = false
 dev = ["pytest-cov>=6.2.1", "pytest-profiling>=1.8.1", "pytest-xdist>=3.8.0"]
 
 [tool.ruff]
-exclude = ["tests/"]
+exclude = ["tests/", "src/main.py"]
