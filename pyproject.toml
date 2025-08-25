@@ -64,7 +64,7 @@ warn_no_return = true
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = false
-# plugins = ["returns.contrib.mypy.returns_plugin"]
+plugins = ["returns.contrib.mypy.returns_plugin"]
 
 # [tool.pytest.ini_options]
 # pytest_plugins = ['pytest_profiling']
@@ -73,4 +73,4 @@ warn_unused_ignores = false
 dev = ["pytest-cov>=6.2.1", "pytest-profiling>=1.8.1", "pytest-xdist>=3.8.0"]
 
 [tool.ruff]
-exclude = ["tests/"]
+exclude = ["tests/", "src/main.py"]

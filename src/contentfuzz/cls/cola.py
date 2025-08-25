@@ -7,11 +7,10 @@ from math import exp
 
 from openai import OpenAI
 from returns.result import safe, Result, ResultE
-from returns.converters import maybe_to_result
 from returns.maybe import maybe
 from structured_logprobs import add_logprobs
 
-from ._base import AnalysisOutput, StanceOutput, StanceAnalyzer
+from ._base import AnalysisOutput, StanceOutput
 from .utils import exp_retry
 
 # assign experts for target
