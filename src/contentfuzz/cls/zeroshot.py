@@ -1,7 +1,5 @@
 import os
-from typing import Literal
 from math import exp
-from pydantic import BaseModel
 
 from openai import OpenAI
 from structured_logprobs import add_logprobs

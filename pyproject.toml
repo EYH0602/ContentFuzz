@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=2.3.2",
     "openai==1.58.1",
     "pandas>=2.3.2",
+    "pylint>=3.3.8",
     "structured-logprobs>=0.1.5",
 ]
 
@@ -61,7 +62,7 @@ warn_no_return = true
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = false
-plugins = ["returns.contrib.mypy.returns_plugin"]
+# plugins = ["returns.contrib.mypy.returns_plugin"]
 
 # [tool.pytest.ini_options]
 # pytest_plugins = ['pytest_profiling']
