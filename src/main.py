@@ -1,34 +1,35 @@
+import logging
+
 import pandas as pd
 import fire
-from returns.result import Success, Failure
 
 from contentfuzz.cls import StanceAnalyzer, OpenAIAnalyzer, COLA
+from contentfuzz.datasets import load_c_stance
+from contentfuzz.evaluate import (
+    EvalMetrics,
+    compute_metrics,
+    print_eval_metrics,
+)
 
-PRINT_FORMAT = """
-Text: {text}
-Stance: {result.label}
-Rationale: {result.rationale}
-Confidence: {prob}
-"""
+from contentfuzz.run import run_generation
 
 
-def main(input_file_path: str) -> None:
+def main(input_file_path: str, output_result_path: str = "out.jsonl") -> None:
     """Main entry point to run ContentFuzz"""
 
-    dataset = pd.read_csv(input_file_path)
+    dataset = load_c_stance(input_file_path)
+    analyzer: StanceAnalyzer = OpenAIAnalyzer()
+    logging.info(f"Running analysis with {analyzer.__class__.__name__}.")
+    results = run_generation(
+        dataset,
+        analyzer,
+        output_result_path=output_result_path,
+    )
 
-    # analyzer: StanceAnalyzer = OpenAIAnalyzer()
-    analyzer: StanceAnalyzer = COLA()
-    for _, row in dataset.iterrows():
-        text = row["Text"]
-        match analyzer.analyze(text):
-            case Success((result, prob)):
-                print(PRINT_FORMAT.format(text=text, result=result, prob=prob))
-            case Failure(exception):
-                print(f"Error analyzing text: {exception}")
-
-        break
+    eval_results: EvalMetrics = compute_metrics(pd.DataFrame(results))
+    print_eval_metrics(eval_results)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     fire.Fire(main)

@@ -11,11 +11,14 @@ dependencies = [
     "fire>=0.7.1",
     "numpy>=2.3.2",
     "openai==1.58.1",
+    "orjson>=3.11.2",
+    "orjsonl>=1.0.0",
     "pandas>=2.3.2",
     "pylint>=3.3.8",
     "returns[compatible-mypy]>=0.26.0",
     "structured-logprobs>=0.1.5",
     "tenacity>=9.1.2",
+    "tqdm>=4.67.1",
 ]
 
 [project.scripts]
@@ -46,6 +49,11 @@ disable = [
     "too-few-public-methods",
 ]
 fail-under = 9
+
+[tool.pylint]
+extension-pkg-whitelist = [
+    "orjson", # https://github.com/pylint-dev/pylint/issues/9762
+]
 
 [tool.mypy]
 python_version = "3.12"
