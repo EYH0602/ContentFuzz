@@ -1,0 +1,50 @@
+import logging
+
+import pandas as pd
+from tqdm import tqdm
+from returns.result import Success, Failure
+from orjsonl import orjsonl
+
+from .cls import StanceAnalyzer
+from .evaluate import GenResult
+
+
+def run_generation(
+    dataset: pd.DataFrame,
+    analyzer: StanceAnalyzer,
+    output_result_path: str | None = None,
+) -> list[GenResult]:
+    """run generation experiments
+
+    Args:
+        dataset (pd.DataFrame): dataset with columns ["text", "stance", "target"]
+        analyzer (StanceAnalyzer): the classification analyzer to use
+        output_result_path (str | None, optional): path to the output result file (JSONL). Defaults to None.
+            If None, the file will be named `out_<analyzer_class_name>.jsonl`
+
+    Returns:
+        list[GenResult]: List of generation results
+    """
+
+    if output_result_path is None:
+        output_result_path = f"out_{analyzer.__class__.__name__}.jsonl"
+
+    results: list[GenResult] = []
+
+    for _, row in tqdm(dataset.iterrows(), total=dataset.shape[0]):
+        text = row["text"]
+        target = row["target"]
+        match analyzer.analyze(text, target=target):
+            case Success((result, prob)):
+                log: GenResult = {
+                    "truth": row["stance"],
+                    "predicted": result.label,
+                    "rationale": result.rationale,
+                    "confidence": prob,
+                }
+                results.append(log)
+                orjsonl.append(output_result_path, log)
+            case Failure(exception):
+                logging.error(f"Error analyzing text: {exception}")
+
+    return results

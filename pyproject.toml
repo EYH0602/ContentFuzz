@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=2.3.2",
     "openai==1.58.1",
     "orjson>=3.11.2",
+    "orjsonl>=1.0.0",
     "pandas>=2.3.2",
     "pylint>=3.3.8",
     "returns[compatible-mypy]>=0.26.0",

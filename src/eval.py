@@ -1,11 +1,11 @@
 import fire
-from contentfuzz.evaluate import load_to_df, compute_metrics, print_eval_metrics
+from contentfuzz.evaluate import load_gen_results, compute_metrics, print_eval_metrics
 
 
-def main(input_results_file: str):
+def main(results_file: str):
     """run evaluation on the saved JSONL generation results file"""
 
-    df = load_to_df(input_results_file)
+    df = load_gen_results(results_file)
     metrics = compute_metrics(df)
 
     print_eval_metrics(metrics)

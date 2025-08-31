@@ -21,7 +21,7 @@ class EvalMetrics(TypedDict):
     average_incorrect_confidence: float
 
 
-def load_to_df(file_path: str) -> pd.DataFrame:
+def load_gen_results(file_path: str) -> pd.DataFrame:
     """
     Load results from a JSONL file into a pandas DataFrame.
     """
@@ -56,3 +56,12 @@ def print_eval_metrics(metrics: EvalMetrics) -> None:
             option=orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_INDENT_2,
         ).decode()
     )
+
+
+def get_correct_tasks(tasks: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
+    """Get tasks that were correctly predicted."""
+
+    assert len(tasks) == len(results), "Tasks and results length mismatch"
+
+    correct_indices = results[results["truth"] == results["predicted"]].index
+    return tasks.iloc[correct_indices]
