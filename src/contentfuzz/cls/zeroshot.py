@@ -11,7 +11,7 @@ from .utils import exp_retry
 
 INSTRUCTION = """
 You are a precise stance classifier.
-Decide whether the author's attitude is Favor / Against / Neutral.
+Decide whether the author's attitude is Favor / Against / Neutral towards the target {target}.
 Be conservative: if unclear, choose Neutral.
 """
 
@@ -29,18 +29,15 @@ class OpenAIAnalyzer:
 
     @safe
     @exp_retry
-    def analyze(self, text: str, target: str | None = None) -> AnalysisOutput:
+    def analyze(self, text: str, target: str) -> AnalysisOutput:
         """Using OpenAI API to analyze the stance of a given text"""
-
-        if target is None:
-            target = "the topic"
 
         completion = self.client.beta.chat.completions.parse(
             model=self.model,
             messages=[
                 {
                     "role": "system",
-                    "content": INSTRUCTION,
+                    "content": INSTRUCTION.format(target=target),
                 },
                 {
                     "role": "user",

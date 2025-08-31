@@ -218,12 +218,10 @@ class COLA:
 
         return stance, probs.get("label")
 
-    def analyze(self, text: str, target: str | None = None) -> ResultE[AnalysisOutput]:
+    def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using COLA to analyze the stance of a given text"""
 
         tweet = text
-        if target is None:
-            target = "the topic"
 
         return Result.do(
             final_response
