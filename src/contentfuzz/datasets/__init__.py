@@ -1,8 +1,7 @@
-from .utils import translate_stance, load_data_entry
-from ._base import StanceDataEntry
+from .utils import translate_stance
+from .c_stance import load_c_stance
 
 __all__ = [
-    "StanceDataEntry",
     "translate_stance",
-    "load_data_entry",
+    "load_c_stance",
 ]
