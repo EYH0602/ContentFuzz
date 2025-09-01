@@ -58,10 +58,12 @@ def print_eval_metrics(metrics: EvalMetrics) -> None:
     )
 
 
-def get_correct_tasks(tasks: pd.DataFrame, results: pd.DataFrame) -> pd.DataFrame:
+def get_correct_tasks(
+    tasks: pd.DataFrame, results: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Get tasks that were correctly predicted."""
 
     assert len(tasks) == len(results), "Tasks and results length mismatch"
 
     correct_indices = results[results["truth"] == results["predicted"]].index
-    return tasks.iloc[correct_indices]
+    return tasks.iloc[correct_indices], results.iloc[correct_indices]

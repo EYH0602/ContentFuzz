@@ -6,7 +6,7 @@ from structured_logprobs import add_logprobs
 from returns.result import safe
 
 from ._base import AnalysisOutput, StanceOutput
-from .utils import exp_retry
+from ..utils import exp_retry
 
 
 INSTRUCTION = """
