@@ -53,6 +53,12 @@ def main(
     r = classifier.analyze(mutated, target=task["target"])
     print(r)
 
+    print("Trying to generate Hash-Tags")
+    mutated = mutator.tags(task)
+    print(mutated)
+    r = classifier.analyze(mutated, target=task["target"])
+    print(r)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

@@ -1,7 +1,7 @@
 import os
 from openai import OpenAI
 from returns.result import safe
-from .prompts import INSTRUCTION, REWRITE, STEER, TLDR
+from .prompts import INSTRUCTION, REWRITE, STEER, TLDR, TAGS
 from ..datasets import StanceDataEntry, negate_stance
 from ..utils import exp_retry
 
@@ -21,7 +21,12 @@ class Mutator:
         self.model = model
         self.client = OpenAI(api_key=api_key)
 
-        self.mutators = [self.rewrite, self.steer]
+        self.mutators = [
+            self.rewrite,
+            self.steer,
+            self.tldr,
+            self.tags,
+        ]
 
     @safe
     @exp_retry
@@ -74,3 +79,21 @@ class Mutator:
         )
         tldr = self._gen(prompt).value_or("")
         return f"{tldr}\n\n{post}"
+
+    def tags(self, entry: StanceDataEntry) -> str:
+        """Hash-Tags mutator
+        the LLM generates five hash-tags for the post,
+        among which two are slightly opposite to the original stance.
+        The hash-tags are added to the end of the post.
+        """
+        post = entry["text"]
+        stance = entry["stance"]
+        prompt = TAGS.format(
+            text=post,
+            stance=stance,
+            target=entry["target"],
+            direction=negate_stance(stance),
+        )
+        tags = self._gen(prompt).value_or("")
+
+        return f"{post}\n\n{tags}"

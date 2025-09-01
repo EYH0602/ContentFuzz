@@ -39,3 +39,14 @@ The text:
 {text}
 ```
 """
+
+TAGS = """
+The current text is {stance} towards the {target}.
+Please write five hash-tags for the text.
+However, among the hash-tags, please make two of them TLDR **slightly** more {direction}.
+
+The text:
+```
+{text}
+```
+"""
