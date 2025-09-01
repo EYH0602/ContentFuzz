@@ -10,7 +10,7 @@ from returns.result import safe, Result, ResultE
 from structured_logprobs import add_logprobs
 
 from ._base import AnalysisOutput, StanceOutput
-from .utils import exp_retry
+from ..utils import exp_retry
 
 # assign experts for target
 target_role_map = {
