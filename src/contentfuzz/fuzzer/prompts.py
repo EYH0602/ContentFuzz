@@ -27,3 +27,15 @@ The text:
 {text}
 ```
 """
+
+TLDR = """
+The current text is {stance} towards the {target}.
+Please write a "Too Long; Didn't Read" (TLDR) summary of the text.
+However, without changing its meaning, please write the TLDR **slightly** more {direction}.
+Please add a `TL;DR:` notifier at the beginning of the TLDR, in the same language as the original text.
+
+The text:
+```
+{text}
+```
+"""

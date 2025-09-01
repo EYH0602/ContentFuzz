@@ -1,7 +1,7 @@
 import os
 from openai import OpenAI
 from returns.result import safe
-from .prompts import INSTRUCTION, REWRITE, STEER
+from .prompts import INSTRUCTION, REWRITE, STEER, TLDR
 from ..datasets import StanceDataEntry, negate_stance
 from ..utils import exp_retry
 
@@ -58,3 +58,19 @@ class Mutator:
             direction=negate_stance(stance),
         )
         return self._gen(prompt).value_or(post)
+
+    def tldr(self, entry: StanceDataEntry) -> str:
+        """TL;DR mutator
+        the LLM generates a summary of the post with slightly opposite stance,
+        which is added to the front of the original post
+        """
+        post = entry["text"]
+        stance = entry["stance"]
+        prompt = TLDR.format(
+            text=post,
+            stance=stance,
+            target=entry["target"],
+            direction=negate_stance(stance),
+        )
+        tldr = self._gen(prompt).value_or("")
+        return f"{tldr}\n\n{post}"
