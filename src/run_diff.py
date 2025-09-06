@@ -6,7 +6,7 @@ from contentfuzz.evaluate import (
     get_correct_tasks,
 )
 from contentfuzz.datasets import load_c_stance, StanceDataEntry
-from contentfuzz.fuzzer import Mutator
+from contentfuzz.fuzz import Mutator
 from contentfuzz.cls import OpenAIAnalyzer
 
 
