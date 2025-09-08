@@ -102,7 +102,7 @@ class Mutator:
         return [f"{post}\n\n{tags}" for tags in self._gen(prompt)]
 
     def mutate(self, entry: StanceDataEntry) -> list[str]:
-        """generated a list of mutated entries from the input entry"""
+        """generates a list of mutated entries from the input entry"""
         mutator = random.choice(self.mutators)
         texts = mutator(entry)
         return texts
