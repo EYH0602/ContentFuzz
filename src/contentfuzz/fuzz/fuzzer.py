@@ -48,25 +48,25 @@ class Fuzzer:
         """run one iteration of fuzzing"""
 
         rephrased_posts, seed = self.fuzz()
-        so = seed[0]["stance"]  # seed original stance
-        co = seed[1]  # seed original confidence
+        original_stance = seed[0]["stance"]  # seed original stance
+        original_confidence = seed[1]  # seed original confidence
 
         # execute analysis
         for p in rephrased_posts:
             match self.analyzer.analyze(p["text"], p["target"]):
-                case Success((s, c)):
-                    if not c:
+                case Success((stance, confidence)):
+                    if not confidence:
                         continue
 
-                    p["stance"] = s.label
+                    p["stance"] = stance.label
 
                     # successful mutation if the stance is changed
-                    if s.label != so:
-                        return Some((p, c))
+                    if stance.label != original_stance:
+                        return Some((p, confidence))
 
                     # otherwise, add to population if confidence is improved
-                    if c and c < co:
-                        self.population.append((p, c))
+                    if confidence and confidence < original_confidence:
+                        self.population.append((p, confidence))
                 case Failure(e):
                     logging.error(f"Analysis failed: {e}")
                     continue
