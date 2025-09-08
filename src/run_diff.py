@@ -1,16 +1,18 @@
 import fire
+from returns.maybe import Maybe, Some, Nothing
+from orjsonl import orjsonl
 from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
 )
 from contentfuzz.datasets import load_c_stance, StanceDataEntry
-from contentfuzz.fuzz import Mutator
+from contentfuzz.fuzz import Mutator, Fuzzer
 from contentfuzz.cls import OpenAIAnalyzer
 
 
-def mutate_and_classify(mutator, classifier, task: StanceDataEntry):
+def mutate_and_classify(mutate, classifier, task: StanceDataEntry):
     """Mutate the task using the mutator and classify using the classifier"""
-    mutated = mutator.mutate(task)
+    mutated = mutate(task)
     for i, m in enumerate(mutated):
         r = classifier.analyze(m, target=task["target"])
         print(f"Variant {i}: {m}")
@@ -21,6 +23,7 @@ def mutate_and_classify(mutator, classifier, task: StanceDataEntry):
 def main(
     dataset_file_path: str = "C-STANCE/c_stance_dataset/subtaskA/raw_test_all_onecol.csv",
     generate_result_path: str = "results/c_stance_A_gpt-4.1-nano.jsonl",
+    attack_result_path: str = "results/c_stance_A_gpt-4.1-nano.attack.jsonl",
 ) -> None:
     """Main entry point to run ContentFuzz"""
 
@@ -29,24 +32,30 @@ def main(
 
     assert len(dataset) == len(gen_results), "Dataset and results length mismatch"
 
-    correct_tasks, correct_results = get_correct_tasks(dataset, gen_results)
+    correct_tasks, _ = get_correct_tasks(dataset, gen_results)
     # ct = correct_tasks.iloc[0].to_dict()
     ct = correct_tasks.to_dict("records")
 
-    task: StanceDataEntry = ct[0]  # type: ignore
-    print("Original Task:")
-    print(task)
     mutator = Mutator()
     classifier = OpenAIAnalyzer()
+    fuzzer = Fuzzer(classifier, mutator)
 
-    original_response = correct_results.loc[0].to_dict()
-    print("Original Response:")
-    print(original_response)
-
-    print("Trying to steer")
-    for m in mutator.mutators:
-        print(f"Using mutator: {m.__name__}")
-        mutate_and_classify(m, classifier, task)
+    for t in ct:
+        task: StanceDataEntry = t  # type: ignore
+        match fuzzer.runs(task):
+            case Some((mutated_text, stance, confidence)):
+                log_obj = task | {
+                    "new_text": mutated_text,
+                    "predicted": stance.label,
+                    "rationale": stance.rationale,
+                    "confidence": confidence,
+                }
+                orjsonl.append(attack_result_path, log_obj)
+            case Nothing:
+                continue
+    n_succ = len(orjsonl.load(attack_result_path))
+    n_total = len(ct)
+    print(f"Attack success rate: {n_succ}/{n_total} = {n_succ/n_total:.2%}")
 
 
 if __name__ == "__main__":

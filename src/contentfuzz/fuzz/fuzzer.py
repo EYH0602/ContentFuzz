@@ -2,12 +2,14 @@ import random
 import logging
 from returns.result import Success, Failure
 from returns.maybe import Maybe, Some, Nothing
-from ..cls import StanceAnalyzer
+from ..cls import StanceAnalyzer, StanceOutput
 from .mutator import Mutator
 from ..datasets import StanceDataEntry
 
 # stance, confidence
 Seed = tuple[StanceDataEntry, float]
+
+FuzzOutput = tuple[str, StanceOutput, float]
 
 
 class Fuzzer:
@@ -44,7 +46,7 @@ class Fuzzer:
             for text in rephrased
         ], seed
 
-    def run(self) -> Maybe[Seed]:
+    def run(self) -> Maybe[FuzzOutput]:
         """run one iteration of fuzzing"""
 
         rephrased_posts, seed = self.fuzz()
@@ -58,11 +60,11 @@ class Fuzzer:
                     if not confidence:
                         continue
 
-                    p["stance"] = stance.label
-
                     # successful mutation if the stance is changed
                     if stance.label != original_stance:
-                        return Some((p, confidence))
+                        return Some((p["text"], stance, confidence))
+
+                    p["stance"] = stance.label
 
                     # otherwise, add to population if confidence is improved
                     if confidence and confidence < original_confidence:
@@ -73,7 +75,9 @@ class Fuzzer:
 
         return Nothing
 
-    def runs(self, original_post: StanceDataEntry, n_iters: int = 10) -> Maybe[Seed]:
+    def runs(
+        self, original_post: StanceDataEntry, n_iters: int = 10
+    ) -> Maybe[FuzzOutput]:
         """run multiple iterations of fuzzing, return the first successful seed"""
         self.population.append((original_post, 1.0))
         for _ in range(n_iters):
