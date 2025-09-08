@@ -1,6 +1,7 @@
 import fire
 from returns.maybe import Maybe, Some, Nothing
 from orjsonl import orjsonl
+from tqdm import tqdm
 from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
@@ -40,7 +41,7 @@ def main(
     classifier = OpenAIAnalyzer()
     fuzzer = Fuzzer(classifier, mutator)
 
-    for t in ct:
+    for t in tqdm(ct):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
             case Some((mutated_text, stance, confidence)):
