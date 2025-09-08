@@ -1,6 +1,8 @@
 import os
+import random
+
 from openai import OpenAI
-from returns.result import safe
+
 from .prompts import INSTRUCTION, REWRITE, STEER, TLDR, TAGS
 from ..datasets import StanceDataEntry, negate_stance
 from ..utils import exp_retry
@@ -98,3 +100,9 @@ class Mutator:
         )
 
         return [f"{post}\n\n{tags}" for tags in self._gen(prompt)]
+
+    def mutate(self, entry: StanceDataEntry) -> list[str]:
+        """generated a list of mutated entries from the input entry"""
+        mutator = random.choice(self.mutators)
+        texts = mutator(entry)
+        return texts
