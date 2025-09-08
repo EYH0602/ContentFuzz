@@ -2,7 +2,7 @@ import random
 import logging
 from returns.result import Success, Failure
 from returns.maybe import Maybe, Some, Nothing
-from ..cls import StanceAnalyzer, AnalysisOutput
+from ..cls import StanceAnalyzer
 from .mutator import Mutator
 from ..datasets import StanceDataEntry
 

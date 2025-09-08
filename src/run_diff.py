@@ -1,5 +1,3 @@
-import logging
-
 import fire
 from contentfuzz.evaluate import (
     load_gen_results,
@@ -8,6 +6,16 @@ from contentfuzz.evaluate import (
 from contentfuzz.datasets import load_c_stance, StanceDataEntry
 from contentfuzz.fuzz import Mutator
 from contentfuzz.cls import OpenAIAnalyzer
+
+
+def mutate_and_classify(mutator, classifier, task: StanceDataEntry):
+    """Mutate the task using the mutator and classify using the classifier"""
+    mutated = mutator.mutate(task)
+    for i, m in enumerate(mutated):
+        r = classifier.analyze(m, target=task["target"])
+        print(f"Variant {i}: {m}")
+        print(f"Classification: {r}")
+    return mutated
 
 
 def main(
@@ -36,30 +44,10 @@ def main(
     print(original_response)
 
     print("Trying to steer")
-    mutated = mutator.steer(task)
-    print(mutated)
-    r = classifier.analyze(mutated, target=task["target"])
-    print(r)
-
-    print("Trying to rewrite")
-    mutated = mutator.rewrite(task)
-    print(mutated)
-    r = classifier.analyze(mutated, target=task["target"])
-    print(r)
-
-    print("Trying to generate TL;DR")
-    mutated = mutator.tldr(task)
-    print(mutated)
-    r = classifier.analyze(mutated, target=task["target"])
-    print(r)
-
-    print("Trying to generate Hash-Tags")
-    mutated = mutator.tags(task)
-    print(mutated)
-    r = classifier.analyze(mutated, target=task["target"])
-    print(r)
+    for m in mutator.mutators:
+        print(f"Using mutator: {m.__name__}")
+        mutate_and_classify(m, classifier, task)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     fire.Fire(main)
