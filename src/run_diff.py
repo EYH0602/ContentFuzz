@@ -1,5 +1,5 @@
 import fire
-from returns.maybe import Maybe, Some, Nothing
+from returns.maybe import Maybe, Some, Nothing  # noqa: F401
 from orjsonl import orjsonl
 from tqdm import tqdm
 from contentfuzz.evaluate import (
@@ -52,7 +52,7 @@ def main(
                     "confidence": confidence,
                 }
                 orjsonl.append(attack_result_path, log_obj)
-            case Nothing:
+            case Nothing:  # noqa: F811, F841
                 continue
     n_succ = len(orjsonl.load(attack_result_path))
     n_total = len(ct)
