@@ -6,11 +6,11 @@ Content Fuzzing for Escaping Information Cocoons in Digital Social Media
 
 ### Datasets
 
-First, you need to get the dataset C-STANCE
+The C-STANCE datasets are pulled directly from Hugging Face:
+- yfhe/C-STANCE-A
+- yfhe/C-STANCE-B
 
-```sh
-git submodule update --init --recursive
-```
+No Git submodules are needed for datasets.
 
 ### Python
 
@@ -25,5 +25,5 @@ uv sync # create a virtual environment, and install dependencies
 ## Running ContentFuzz
 
 ```sh
-uv run src/main.py C-STANCE/c_stance_dataset/subtaskA/raw_test_all_onecol.csv
+uv run src/main.py
 ```

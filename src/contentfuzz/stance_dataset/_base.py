@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Literal
 
 
 class StanceDataEntry(TypedDict, total=True):
@@ -7,3 +7,8 @@ class StanceDataEntry(TypedDict, total=True):
     text: str
     target: str
     stance: str
+
+
+StanceDataset = list[StanceDataEntry]
+
+SPLITS = Literal["train", "test", "validation"]

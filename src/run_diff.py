@@ -6,7 +6,7 @@ from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
 )
-from contentfuzz.datasets import load_c_stance, StanceDataEntry
+from contentfuzz.stance_dataset import load_c_stance, StanceDataEntry, C_STANCE
 from contentfuzz.fuzz import Mutator, Fuzzer
 from contentfuzz.cls import OpenAIAnalyzer
 
@@ -22,13 +22,13 @@ def mutate_and_classify(mutate, classifier, task: StanceDataEntry):
 
 
 def main(
-    dataset_file_path: str = "C-STANCE/c_stance_dataset/subtaskA/raw_test_all_onecol.csv",
+    dataset_name: C_STANCE,
     generate_result_path: str = "results/c_stance_A_gpt-4.1-nano.jsonl",
     attack_result_path: str = "results/c_stance_A_gpt-4.1-nano.attack.jsonl",
 ) -> None:
     """Main entry point to run ContentFuzz"""
 
-    dataset = load_c_stance(dataset_file_path)
+    dataset = load_c_stance(dataset_name, "test")
     gen_results = load_gen_results(generate_result_path)
 
     assert len(dataset) == len(gen_results), "Dataset and results length mismatch"
