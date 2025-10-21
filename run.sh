@@ -1,29 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="C-STANCE/c_stance_dataset/subtaskB"
-MODEL_SUFFIX="gpt-4.1-nano"
-RESULTS_DIR="results"
-mkdir -p $RESULTS_DIR
+# Run ContentFuzz for both C-STANCE datasets using the new main.py interface.
 
-echo "Running c_stance_dataset/subtaskB subtasks one by one..."
+MODEL_SUFFIX="${MODEL_SUFFIX:-gpt-4.1-nano}"
+RESULTS_DIR="${RESULTS_DIR:-results}"
+mkdir -p "$RESULTS_DIR"
 
-for dir in "$BASE_DIR"/*; do
-  [[ -d "$dir" ]] || continue
+datasets=(
+  "c-stance-a"
+  "c-stance-b"
+)
 
-  input_csv="$dir/raw_test_all_onecol.csv"
-  if [[ ! -f "$input_csv" ]]; then
-    echo "Skipping $(basename "$dir"): input CSV not found"
-    continue
-  fi
+echo "Running ContentFuzz over C-STANCE datasets..."
 
-  name="$(basename "$dir")"
-  output_file="${RESULTS_DIR}/c_stance_B_${name}_${MODEL_SUFFIX}.jsonl"
+for ds in "${datasets[@]}"; do
+  case "$ds" in
+    c-stance-a) tag="A" ;;
+    c-stance-b) tag="B" ;;
+    *) tag="$(echo "$ds" | tr '[:lower:]' '[:upper:]')" ;;
+  esac
 
-  echo "\n==> Processing: $name"
-  echo "Input:  $input_csv"
-  echo "Output: $output_file"
-  uv run src/main.py -i "$input_csv" -o "$output_file"
+  out="${RESULTS_DIR}/c_stance_${tag}_${MODEL_SUFFIX}.jsonl"
+
+  echo "\n==> Dataset: $ds"
+  echo "Output:  $out"
+  uv run src/main.py "$ds" --output_result_path "$out"
 done
 
-echo "\nAll subtasks completed."
+echo "\nAll datasets completed."
