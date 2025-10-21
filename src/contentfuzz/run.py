@@ -1,6 +1,5 @@
 import logging
 
-import pandas as pd
 from tqdm import tqdm
 from returns.result import Success, Failure
 from orjsonl import orjsonl
