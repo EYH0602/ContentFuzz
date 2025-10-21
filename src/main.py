@@ -1,10 +1,11 @@
 import logging
+from typing import Literal
 
 import pandas as pd
 import fire
 
-from contentfuzz.cls import StanceAnalyzer, OpenAIAnalyzer, COLA
-from contentfuzz.datasets import load_c_stance
+from contentfuzz.cls import StanceAnalyzer, OpenAIAnalyzer
+from contentfuzz.stance_dataset import StanceDataset, load_c_stance, DATASET
 from contentfuzz.evaluate import (
     EvalMetrics,
     compute_metrics,
@@ -14,10 +15,18 @@ from contentfuzz.evaluate import (
 from contentfuzz.run import run_generation
 
 
-def main(input_file_path: str, output_result_path: str = "out.jsonl") -> None:
-    """Main entry point to run ContentFuzz"""
+def main(dataset_name: DATASET, output_result_path: str = "out.jsonl") -> None:
+    """Main entry point to run ContentFuzz.
 
-    dataset = load_c_stance(input_file_path)
+    Args:
+        dataset: Which dataset to use ("c-stance-a" or "c-stance-b").
+        split: HF split to use (default: "train").
+        output_result_path: Path to save results JSONL.
+    """
+
+    # dataset only have C-STANCE for now
+    dataset: StanceDataset = load_c_stance(dataset_name, "test")
+
     analyzer: StanceAnalyzer = OpenAIAnalyzer()
     logging.info(f"Running analysis with {analyzer.__class__.__name__}.")
     results = run_generation(

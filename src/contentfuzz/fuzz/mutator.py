@@ -4,7 +4,7 @@ import random
 from openai import OpenAI
 
 from .prompts import INSTRUCTION, REWRITE, STEER, TLDR, TAGS
-from ..datasets import StanceDataEntry, negate_stance
+from ..stance_dataset import StanceDataEntry, negate_stance
 from ..utils import exp_retry
 
 

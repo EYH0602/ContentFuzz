@@ -7,17 +7,18 @@ from orjsonl import orjsonl
 
 from .cls import StanceAnalyzer
 from .evaluate import GenResult
+from .stance_dataset import StanceDataset
 
 
 def run_generation(
-    dataset: pd.DataFrame,
+    dataset: StanceDataset,
     analyzer: StanceAnalyzer,
     output_result_path: str | None = None,
 ) -> list[GenResult]:
     """run generation experiments
 
     Args:
-        dataset (pd.DataFrame): dataset with columns ["text", "stance", "target"]
+        dataset (StanceDataset): dataset with columns ["text", "stance", "target"]
         analyzer (StanceAnalyzer): the classification analyzer to use
         output_result_path (str | None, optional): path to the output result file (JSONL). Defaults to None.
             If None, the file will be named `out_<analyzer_class_name>.jsonl`
@@ -31,7 +32,7 @@ def run_generation(
 
     results: list[GenResult] = []
 
-    for _, row in tqdm(dataset.iterrows(), total=dataset.shape[0]):
+    for row in tqdm(dataset):
         text = row["text"]
         target = row["target"]
         match analyzer.analyze(text, target=target):

@@ -3,6 +3,8 @@ from typing import TypedDict
 import pandas as pd
 import orjson
 
+from .stance_dataset import StanceDataset
+
 
 class GenResult(TypedDict):
     """saved generation results"""
@@ -59,11 +61,12 @@ def print_eval_metrics(metrics: EvalMetrics) -> None:
 
 
 def get_correct_tasks(
-    tasks: pd.DataFrame, results: pd.DataFrame
+    tasks: StanceDataset, results: pd.DataFrame
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Get tasks that were correctly predicted."""
 
     assert len(tasks) == len(results), "Tasks and results length mismatch"
 
     correct_indices = results[results["truth"] == results["predicted"]].index
-    return tasks.iloc[correct_indices], results.iloc[correct_indices]
+    tasks_df = pd.DataFrame(tasks)
+    return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
