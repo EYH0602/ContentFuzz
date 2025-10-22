@@ -2,6 +2,7 @@ from typing import TypedDict
 
 import pandas as pd
 import orjson
+from sklearn.metrics import f1_score
 
 from .stance_dataset import StanceDataset
 
@@ -19,6 +20,7 @@ class EvalMetrics(TypedDict):
     """Evaluation metrics for model performance."""
 
     accuracy: float
+    f1: float
     average_correct_confidence: float
     average_incorrect_confidence: float
 
@@ -40,11 +42,19 @@ def compute_metrics(df: pd.DataFrame) -> EvalMetrics:
     assert {"truth", "predicted", "confidence"}.issubset(df.columns)
 
     accuracy = (df["truth"] == df["predicted"]).mean()
+    # Use sklearn for macro F1; cast to string to avoid label type issues
+    f1 = f1_score(
+        df["truth"].astype(str),
+        df["predicted"].astype(str),
+        average="macro",
+        zero_division=0,
+    )
     avg_correct_confidence = df[df["truth"] == df["predicted"]]["confidence"].mean()
     avg_incorrect_confidence = df[df["truth"] != df["predicted"]]["confidence"].mean()
 
     return {
-        "accuracy": round(accuracy, 4),
+        "accuracy": round(float(accuracy), 4),
+        "f1": round(float(f1), 4),
         "average_correct_confidence": round(avg_correct_confidence, 4),
         "average_incorrect_confidence": round(avg_incorrect_confidence, 4),
     }

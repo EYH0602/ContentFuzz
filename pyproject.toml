@@ -16,6 +16,7 @@ dependencies = [
     "pandas>=2.3.2",
     "pylint>=3.3.8",
     "returns[compatible-mypy]>=0.26.0",
+    "scikit-learn>=1.7.2",
     "structured-logprobs>=0.1.5",
     "tenacity>=9.1.2",
     "tqdm>=4.67.1",
