@@ -1,5 +1,6 @@
 import logging
 from typing import Literal
+import os
 
 import pandas as pd
 import fire
@@ -15,7 +16,11 @@ from contentfuzz.evaluate import (
 from contentfuzz.run import run_generation
 
 
-def main(dataset_name: DATASET, output_result_path: str = "out.jsonl") -> None:
+def main(
+    dataset_name: DATASET,
+    model: str = "gpt-4.1-nano",
+    output_result_path: str | None = None,
+) -> None:
     """Main entry point to run ContentFuzz.
 
     Args:
@@ -24,10 +29,14 @@ def main(dataset_name: DATASET, output_result_path: str = "out.jsonl") -> None:
         output_result_path: Path to save results JSONL.
     """
 
+    if output_result_path is None:
+        os.makedirs("results", exist_ok=True)
+        output_result_path = f"results/{model}.{dataset_name}.jsonl"
+
     # dataset only have C-STANCE for now
     dataset: StanceDataset = load_c_stance(dataset_name, "test")
 
-    analyzer: StanceAnalyzer = OpenAIAnalyzer()
+    analyzer: StanceAnalyzer = OpenAIAnalyzer(model=model)
     logging.info(f"Running analysis with {analyzer.__class__.__name__}.")
     results = run_generation(
         dataset,
