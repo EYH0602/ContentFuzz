@@ -11,7 +11,6 @@ from contentfuzz.evaluate import (
     compute_metrics,
     print_eval_metrics,
 )
-
 from contentfuzz.run import run_generation
 
 
@@ -21,7 +20,7 @@ def main(
     model: str = "gpt-4.1-nano",
     output_result_path: str | None = None,
 ) -> None:
-    """Main entry point to run ContentFuzz.
+    """Main entry point to run Stance Analysis in ContentFuzz.
 
     Args:
         dataset_name: Which dataset to use ("c-stance-a" or "c-stance-b").
@@ -32,7 +31,7 @@ def main(
 
     if output_result_path is None:
         os.makedirs("results", exist_ok=True)
-        output_result_path = f"results/COLA-{model}.{dataset_name}.jsonl"
+        output_result_path = f"results/{analyzer_name}+{model}+{dataset_name}.jsonl"
 
     # dataset only have C-STANCE for now
     dataset: StanceDataset
