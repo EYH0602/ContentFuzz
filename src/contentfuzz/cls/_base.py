@@ -21,6 +21,8 @@ AnalysisOutput = tuple[StanceOutput, float | None]
 class StanceAnalyzer(Protocol):
     """Base protocol for all analyzers"""
 
+    model: str
+
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """
         Analyze the given text and return the analysis output.
