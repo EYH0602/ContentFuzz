@@ -2,13 +2,10 @@
 Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
-import os
-
-from openai import OpenAI
 from returns.result import safe, Result, ResultE
 
 from ._base import AnalysisOutput
-from .utils import classify_w_prob, MODEL_NAME_MAP, _get_model_and_client
+from .utils import classify_w_prob, _get_model_and_client
 from ..utils import exp_retry
 
 # assign experts for target

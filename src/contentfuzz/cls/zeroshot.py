@@ -1,8 +1,4 @@
-import os
-
-from openai import OpenAI
-
-from .utils import classify_w_prob, MODEL_NAME_MAP, _get_model_and_client
+from .utils import classify_w_prob, _get_model_and_client
 
 
 INSTRUCTION = """
