@@ -38,8 +38,7 @@ def run_generation(
             case Success((result, prob)):
                 log: GenResult = {
                     "truth": row["stance"],
-                    "predicted": result.label,
-                    "rationale": result.rationale,
+                    "predicted": result,
                     "confidence": prob,
                 }
                 results.append(log)

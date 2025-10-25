@@ -12,7 +12,6 @@ class GenResult(TypedDict):
 
     truth: str
     predicted: str
-    rationale: str
     confidence: float | None
 
 

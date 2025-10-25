@@ -9,7 +9,7 @@ from ..stance_dataset import StanceDataEntry
 # stance, confidence
 Seed = tuple[StanceDataEntry, float]
 
-FuzzOutput = tuple[str, StanceOutput, float]
+FuzzOutput = tuple[str, str, float]
 
 
 class Fuzzer:
@@ -62,10 +62,10 @@ class Fuzzer:
                         continue
 
                     # successful mutation if the stance is changed
-                    if stance.label != original_stance:
+                    if stance != original_stance:
                         return Some((p["text"], stance, confidence))
 
-                    p["stance"] = stance.label
+                    p["stance"] = stance
 
                     # otherwise, add to population if confidence is improved
                     if confidence and confidence < original_confidence:

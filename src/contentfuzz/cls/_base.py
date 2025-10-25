@@ -1,20 +1,9 @@
-from typing import Literal, Protocol, runtime_checkable
-from pydantic import BaseModel
-
+from typing import Protocol, runtime_checkable
 from returns.result import ResultE
 
 
-Label = Literal["Favor", "Against", "Neutral"]
-
-
-class StanceOutput(BaseModel):
-    """Classifier response format"""
-
-    label: Label
-    rationale: str
-
-
-AnalysisOutput = tuple[StanceOutput, float | None]
+StanceOutput = ["Favor", "Against", "Neutral"]
+AnalysisOutput = tuple[str, float | None]
 
 
 @runtime_checkable
