@@ -10,7 +10,6 @@ from ..utils import exp_retry
 
 def _get_model_and_client(model_name: str) -> tuple[str, OpenAI]:
     use_ppio = model_name in MODEL_NAME_MAP
-
     key_name = "PPIO_API_KEY" if use_ppio else "OPENAI_API_KEY"
     api_key = os.getenv(key_name)
     assert api_key is not None, "The API key environment variable is not set"
@@ -20,7 +19,7 @@ def _get_model_and_client(model_name: str) -> tuple[str, OpenAI]:
         base_url="https://api.ppinfra.com/openai" if use_ppio else None,
         api_key=api_key,
     )
-    return model_name, client
+    return model, client
 
 
 def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str]:
