@@ -3,7 +3,6 @@ Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
 import os
-from math import exp
 
 from openai import OpenAI
 from returns.result import safe, Result, ResultE
