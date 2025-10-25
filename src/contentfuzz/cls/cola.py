@@ -2,14 +2,10 @@
 Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
-import os
-from math import exp
-
-from openai import OpenAI
 from returns.result import safe, Result, ResultE
-from structured_logprobs import add_logprobs
 
-from ._base import AnalysisOutput, StanceOutput
+from ._base import AnalysisOutput
+from .utils import classify_w_prob, _get_model_and_client
 from ..utils import exp_retry
 
 # assign experts for target
@@ -66,12 +62,7 @@ class COLA:
     """Zero-shot stance analysis using OpenAI API"""
 
     def __init__(self, model: str = "gpt-4.1-nano"):
-
-        api_key = os.getenv("OPENAI_API_KEY")
-        assert api_key is not None, "OPENAI_API_KEY environment variable is not set"
-
-        self.model = model
-        self.client = OpenAI(api_key=api_key)
+        self.model, self.client = _get_model_and_client(model)
 
     @safe
     @exp_retry
@@ -170,10 +161,9 @@ class COLA:
         )
         return self.get_completion(prompt)
 
-    @safe
     def final_judgement(
         self, tweet: str, favor_response: str, against_response: str, target: str
-    ):
+    ) -> ResultE[AnalysisOutput]:
         """
         By the COLA authors:
         This is an example of a prompt for the final judgement stage.
@@ -191,32 +181,7 @@ class COLA:
             target=target,
         )
 
-        # NOTE: We added structured decoding in this step
-        completion = self.client.beta.chat.completions.parse(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ],
-            logprobs=True,
-            response_format=StanceOutput,
-            temperature=0,  # for reproduce
-        )
-        chat_completion = add_logprobs(completion)
-        response = chat_completion.value
-        probs = chat_completion.log_probs[0]
-        # apply `exp` to all values of probs
-        probs = {label: exp(logit) for label, logit in probs.items()}
-        output = response.choices[0].message.content
-
-        if output is None:
-            raise ValueError("OpenAI API returned no output")
-
-        stance = StanceOutput.model_validate_json(output)
-
-        return stance, probs.get("label")
+        return classify_w_prob(self.client, self.model, None, prompt)
 
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using COLA to analyze the stance of a given text"""
@@ -250,6 +215,9 @@ class COLA:
             )
             # Step 5: Final judgement
             for final_response in self.final_judgement(
-                tweet, favor_response, against_response, target
+                tweet,
+                favor_response,
+                against_response,
+                target,
             )
         )

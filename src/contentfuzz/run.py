@@ -38,13 +38,12 @@ def run_generation(
             case Success((result, prob)):
                 log: GenResult = {
                     "truth": row["stance"],
-                    "predicted": result.label,
-                    "rationale": result.rationale,
+                    "predicted": result,
                     "confidence": prob,
                 }
                 results.append(log)
                 orjsonl.append(output_result_path, log)
-            case Failure(exception):
-                logging.error(f"Error analyzing text: {exception}")
+            case Failure(_ as e):
+                logging.error(f"Error analyzing text: {e}")
 
     return results
