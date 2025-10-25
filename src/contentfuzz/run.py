@@ -43,7 +43,7 @@ def run_generation(
                 }
                 results.append(log)
                 orjsonl.append(output_result_path, log)
-            case Failure(exception):
-                logging.error(f"Error analyzing text: {exception}")
+            case Failure(_ as e):
+                logging.error(f"Error analyzing text: {e}")
 
     return results

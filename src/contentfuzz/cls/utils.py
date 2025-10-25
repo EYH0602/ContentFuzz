@@ -7,6 +7,18 @@ from ._base import AnalysisOutput, StanceOutput
 from ..utils import exp_retry
 
 
+def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str]:
+    """simple thinking content parser for Qwen models"""
+    if delim not in text:
+        return ("", text.strip())
+
+    reasoning_part, answer_part = text.split(delim, 1)
+    reasoning = reasoning_part.replace("<think>", "", 1).strip()
+    answer = answer_part.strip()
+
+    return reasoning, answer
+
+
 @safe
 @exp_retry
 def classify_w_prob(
@@ -39,9 +51,13 @@ def classify_w_prob(
         logprobs=True,
         temperature=0,  # for reproduce
     )
-    stance = completion.choices[0].message.content
+    content = completion.choices[0].message.content
 
-    if stance is None or stance not in StanceOutput:
+    if content is None:
+        raise ValueError("API no output")
+
+    rationale, stance = parse_reasoning_output(content)
+    if stance not in StanceOutput:
         raise ValueError(f"StanceOutput is invalid: {stance}")
 
     # stance = StanceOutput.model_validate_json(output)
@@ -57,5 +73,12 @@ def classify_w_prob(
 
 MODEL_NAME_MAP: dict[str, str] = {
     "deepseek-r1": "deepseek/deepseek-r1",
+    "deepseek-v3.2-exp": "deepseek/deepseek-v3.2-exp",
     "qwen3-next-80b-a3b-instruct": "qwen/qwen3-next-80b-a3b-instruct",
+    "qwen3-235b-a22b-fp8": "qwen/qwen3-235b-a22b-fp8",
+    "qwen3-235b-a22b-instruct-2507": "qwen/qwen3-235b-a22b-instruct-2507",
+    "qwen3-235b-a22b-thinking-2507": "qwen/qwen3-235b-a22b-thinking-2507",
+    "qwen3-4b-fp8": "qwen/qwen3-4b-fp8",
+    "qwen3-30b-a3b-fp8": "qwen/qwen3-30b-a3b-fp8",
+    "deepseek-r1-0528-qwen3-8b": "deepseek/deepseek-r1-0528-qwen3-8b",
 }
