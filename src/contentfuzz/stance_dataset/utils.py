@@ -1,18 +1,19 @@
 from ._base import StanceDataEntry
+from .._types import Stance
 
-CHN_TO_EN = {"支持": "Favor", "反对": "Against", "中立": "Neutral"}
+CHN_TO_EN: dict[str, Stance] = {"支持": "Favor", "反对": "Against", "中立": "Neutral"}
 
 
-def translate_stance(stance: str) -> str:
+def translate_stance(stance: str) -> Stance:
     """unify stance language
     1. Chinese -> English
     2. Irrelevant -> Neutral
     """
 
-    stance = CHN_TO_EN.get(stance, stance)
+    _stance: Stance = CHN_TO_EN.get(stance, "Neutral")
     if stance == "Irrelevant":
-        stance = "Neutral"
-    return stance
+        _stance = "Neutral"
+    return _stance
 
 
 def load_data_entry(data: dict) -> StanceDataEntry:
@@ -24,7 +25,7 @@ def load_data_entry(data: dict) -> StanceDataEntry:
     )
 
 
-def negate_stance(stance: str, neutral_to: str | None = None) -> str:
+def negate_stance(stance: Stance, neutral_to: Stance | None = None) -> Stance:
     """Negate the stance.
     For example:
         - Favor -> Against

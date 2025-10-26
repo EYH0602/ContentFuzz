@@ -1,17 +1,18 @@
-from typing import TypedDict
+from typing import TypedDict, Literal
 
 import pandas as pd
 import orjson
 from sklearn.metrics import f1_score
 
 from .stance_dataset import StanceDataset
+from ._types import Stance
 
 
 class GenResult(TypedDict):
     """saved generation results"""
 
-    truth: str
-    predicted: str
+    truth: Stance
+    predicted: Stance | Literal["error"]
     confidence: float | None
 
 
