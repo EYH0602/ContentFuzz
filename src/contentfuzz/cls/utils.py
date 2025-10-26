@@ -3,8 +3,9 @@ import os
 
 from openai import OpenAI
 from returns.result import safe
+from structured_logprobs import add_logprobs
 
-from ._base import AnalysisOutput, StanceOutput
+from ._base import AnalysisOutput, ClassifierOutput
 from ..utils import exp_retry
 
 
@@ -60,30 +61,26 @@ def classify_w_prob(
         },
     )
 
-    completion = client.chat.completions.create(
+    completion = client.beta.chat.completions.parse(
         model=model,
         messages=messages,  # type: ignore
         logprobs=True,
+        response_format=ClassifierOutput,
         temperature=0,  # for reproduce
     )
-    content = completion.choices[0].message.content
+    chat_completion = add_logprobs(completion)
+    response = chat_completion.value
+    probs = chat_completion.log_probs[0]
+    # apply `exp` to all values of probs
+    probs = {label: exp(logit) for label, logit in probs.items()}
+    output = response.choices[0].message.content
 
-    if content is None:
-        raise ValueError("API no output")
+    if output is None:
+        raise ValueError("OpenAI API returned no output")
 
-    rationale, stance = parse_reasoning_output(content)
-    if stance not in StanceOutput:
-        raise ValueError(f"StanceOutput is invalid: {stance}")
+    output = ClassifierOutput.model_validate_json(output)
 
-    # stance = StanceOutput.model_validate_json(output)
-    logprobs = completion.choices[0].logprobs
-    if not logprobs or not logprobs.content:
-        raise ValueError("logprobs is None")
-    # token_logprobs = [tp.logprob for tp in resp.output[0].content[0].token_logprobs]
-    token_logprobs = [c.logprob for c in logprobs.content]
-    prob: float = sum(token_logprobs)  # the total likely-hood
-
-    return stance, exp(prob)
+    return output.stance, probs.get("stance")
 
 
 MODEL_NAME_MAP: dict[str, str] = {
