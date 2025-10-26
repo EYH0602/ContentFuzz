@@ -10,6 +10,7 @@ def translate_stance(stance: str) -> Stance:
     2. Irrelevant -> Neutral
     """
 
+    # NOTE: if an original stance is not in CHN_TO_EN, use Neutral for it.
     _stance: Stance = CHN_TO_EN.get(stance, "Neutral")
     if stance == "Irrelevant":
         _stance = "Neutral"
