@@ -1,9 +1,16 @@
 from typing import Protocol, runtime_checkable
+
+from pydantic import BaseModel
 from returns.result import ResultE
+from .._types import Stance
+
+AnalysisOutput = tuple[Stance, float | None]
 
 
-StanceOutput = ["Favor", "Against", "Neutral"]
-AnalysisOutput = tuple[str, float | None]
+class ClassifierOutput(BaseModel):
+    """for OpenAI's structured output"""
+
+    stance: Stance
 
 
 @runtime_checkable

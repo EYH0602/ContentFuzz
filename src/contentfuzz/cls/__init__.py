@@ -1,7 +1,7 @@
 import logging
 from typing import Literal
 
-from ._base import StanceAnalyzer, AnalysisOutput, StanceOutput
+from ._base import StanceAnalyzer, AnalysisOutput
 from .zeroshot import OpenAIAnalyzer
 from .cola import COLA
 
@@ -13,7 +13,6 @@ ANALYZER = Literal["zero-shot", "cola"]
 __all__ = [
     "StanceAnalyzer",
     "AnalysisOutput",
-    "StanceOutput",
     "OpenAIAnalyzer",
     "COLA",
     "ANALYZER",

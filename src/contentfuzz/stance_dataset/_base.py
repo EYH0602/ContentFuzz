@@ -1,4 +1,5 @@
 from typing import TypedDict, Literal
+from .._types import Stance
 
 
 class StanceDataEntry(TypedDict, total=True):
@@ -6,7 +7,7 @@ class StanceDataEntry(TypedDict, total=True):
 
     text: str
     target: str
-    stance: str
+    stance: Stance
 
 
 StanceDataset = list[StanceDataEntry]
