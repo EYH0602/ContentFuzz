@@ -3,19 +3,40 @@ import random
 
 from openai import OpenAI
 
-from .prompts import INSTRUCTION, REWRITE, STEER, TLDR, TAGS
-from ..stance_dataset import StanceDataEntry, negate_stance
+from .prompts import INSTRUCTION, REWRITE
+from ..stance_dataset import StanceDataEntry
 from ..utils import exp_retry
 
 
 class Mutator:
     """
-    The Mutator class is responsible for generating variations of text inputs
-    using the OpenAI API.
-    If the API request fails, it will return the original text.
+    Generates variations of input texts using the OpenAI Chat Completions API.
+
+    Parameters
+    - model: str
+      The OpenAI chat model to use. Defaults to "gpt-4.1-nano".
+
+    - n: int
+      Number of completions to request per prompt. Defaults to 5.
+
+    - temperature: float | None
+      Controls randomness of generation. If None (default), enable temperature
+      scheduling where a temperature is sampled from a discrete range [0.0, 2.0]
+      and adapted via a simple reward-based energy update. If set to a float,
+      scheduling is disabled and the fixed value is used for all generations.
+
+    Notes
+    - Requires the `OPENAI_API_KEY` environment variable to be set.
+    - When scheduling is enabled, `update_energy` adjusts sampling weights based
+      on observed success to bias future temperature choices.
     """
 
-    def __init__(self, model: str = "gpt-4.1-nano", n: int = 5):
+    def __init__(
+        self,
+        model: str = "gpt-4.1-nano",
+        n: int = 5,
+        temperature: float | None = None,
+    ):
 
         api_key = os.getenv("OPENAI_API_KEY")
         assert api_key is not None, "OPENAI_API_KEY environment variable is not set"
@@ -23,17 +44,55 @@ class Mutator:
         self.model = model
         self.client = OpenAI(api_key=api_key)
         self.n = n
+        # If temperature is None, enable scheduling; otherwise use fixed temperature
+        self.use_temp_schedule: bool = temperature is None
+        self.fixed_temperature: float | None = (
+            None if temperature is None else float(temperature)
+        )
 
-        self.mutators = [
-            self.rewrite,
-            self.steer,
-            self.tldr,
-            self.tags,
-        ]
+        # Temperature scheduling state
+        if self.use_temp_schedule:
+            # 0.0 .. 2.0 (step 0.1) => 21 choices
+            self.temperatures: list[float] = [round(0.1 * i, 1) for i in range(0, 21)]
+            # Start with equal energies (uniform probability)
+            self._energies: list[float] = [1.0 for _ in self.temperatures]
+            self._last_temp_idx: int | None = None
+        else:
+            # Placeholders to keep attributes available if referenced
+            # Use the provided fixed temperature
+            assert self.fixed_temperature is not None
+            self.temperatures = [self.fixed_temperature]
+            self._energies = [1.0]
+            self._last_temp_idx = None
+
+    def _choose_temperature(self) -> float:
+        # If scheduling disabled, always use the fixed base temperature
+        if not self.use_temp_schedule:
+            assert self.fixed_temperature is not None
+            return self.fixed_temperature
+        # Weighted by energies; initially equal
+        idx = random.choices(
+            range(len(self.temperatures)), weights=self._energies, k=1
+        )[0]
+        self._last_temp_idx = idx
+        return self.temperatures[idx]
+
+    def update_energy(self, reward: float) -> None:
+        """Increase energy of the last-used temperature by reward (e.g., m/n).
+
+        No-op when temperature scheduling is disabled.
+        """
+        if not self.use_temp_schedule:
+            return
+        if self._last_temp_idx is None:
+            return
+        # ensure non-negative reward
+        reward = max(0.0, float(reward))
+        self._energies[self._last_temp_idx] += reward
 
     @exp_retry
     def _gen(self, prompt: str) -> list[str]:
-
+        temperature = self._choose_temperature()
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -41,6 +100,7 @@ class Mutator:
                 {"role": "user", "content": prompt},
             ],
             n=self.n,
+            temperature=temperature,
         )
 
         contents = [
@@ -57,52 +117,7 @@ class Mutator:
         prompt = REWRITE.format(text=post)
         return self._gen(prompt)
 
-    def steer(self, entry: StanceDataEntry) -> list[str]:
-        """steer mutator, if the request failed, return the original text"""
-        post = entry["text"]
-        stance = entry["stance"]
-        prompt = STEER.format(
-            text=post,
-            stance=stance,
-            target=entry["target"],
-            direction=negate_stance(stance),
-        )
-        return self._gen(prompt)
-
-    def tldr(self, entry: StanceDataEntry) -> list[str]:
-        """TL;DR mutator
-        the LLM generates a summary of the post with slightly opposite stance,
-        which is added to the front of the original post
-        """
-        post = entry["text"]
-        stance = entry["stance"]
-        prompt = TLDR.format(
-            text=post,
-            stance=stance,
-            target=entry["target"],
-            direction=negate_stance(stance),
-        )
-        return [f"{tldr}\n\n{post}" for tldr in self._gen(prompt)]
-
-    def tags(self, entry: StanceDataEntry) -> list[str]:
-        """Hash-Tags mutator
-        the LLM generates five hash-tags for the post,
-        among which two are slightly opposite to the original stance.
-        The hash-tags are added to the end of the post.
-        """
-        post = entry["text"]
-        stance = entry["stance"]
-        prompt = TAGS.format(
-            text=post,
-            stance=stance,
-            target=entry["target"],
-            direction=negate_stance(stance),
-        )
-
-        return [f"{post}\n\n{tags}" for tags in self._gen(prompt)]
-
     def mutate(self, entry: StanceDataEntry) -> list[str]:
         """generates a list of mutated entries from the input entry"""
-        mutator = random.choice(self.mutators)
-        texts = mutator(entry)
+        texts = self.rewrite(entry)
         return texts
