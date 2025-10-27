@@ -54,6 +54,8 @@ class Fuzzer:
         original_confidence = seed[1]  # seed original confidence
 
         # execute analysis
+        num_added = 0
+        total_generated = len(rephrased_posts)
         for p in rephrased_posts:
             match self.analyzer.analyze(p["text"], p["target"]):
                 case Success((stance, confidence)):
@@ -62,6 +64,9 @@ class Fuzzer:
 
                     # successful mutation if the stance is changed
                     if stance != original_stance:
+                        # update temperature energy with current success ratio
+                        if total_generated:
+                            self.mutator.update_energy(num_added / total_generated)
                         return Some((p["text"], stance, confidence))
 
                     p["stance"] = stance
@@ -69,10 +74,14 @@ class Fuzzer:
                     # otherwise, add to population if confidence is improved
                     if confidence and confidence < original_confidence:
                         self.population.append((p, confidence))
+                        num_added += 1
                 case Failure(e):
                     logging.error(f"Analysis failed: {e}")
                     continue
 
+        # after evaluating all, update temperature energy with fraction added
+        if total_generated:
+            self.mutator.update_energy(num_added / total_generated)
         return Nothing
 
     def runs(
