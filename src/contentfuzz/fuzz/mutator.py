@@ -24,13 +24,6 @@ class Mutator:
         self.client = OpenAI(api_key=api_key)
         self.n = n
 
-        self.mutators = [
-            self.rewrite,
-            self.steer,
-            self.tldr,
-            self.tags,
-        ]
-
     @exp_retry
     def _gen(self, prompt: str) -> list[str]:
 
@@ -57,52 +50,7 @@ class Mutator:
         prompt = REWRITE.format(text=post)
         return self._gen(prompt)
 
-    def steer(self, entry: StanceDataEntry) -> list[str]:
-        """steer mutator, if the request failed, return the original text"""
-        post = entry["text"]
-        stance = entry["stance"]
-        prompt = STEER.format(
-            text=post,
-            stance=stance,
-            target=entry["target"],
-            direction=negate_stance(stance),
-        )
-        return self._gen(prompt)
-
-    def tldr(self, entry: StanceDataEntry) -> list[str]:
-        """TL;DR mutator
-        the LLM generates a summary of the post with slightly opposite stance,
-        which is added to the front of the original post
-        """
-        post = entry["text"]
-        stance = entry["stance"]
-        prompt = TLDR.format(
-            text=post,
-            stance=stance,
-            target=entry["target"],
-            direction=negate_stance(stance),
-        )
-        return [f"{tldr}\n\n{post}" for tldr in self._gen(prompt)]
-
-    def tags(self, entry: StanceDataEntry) -> list[str]:
-        """Hash-Tags mutator
-        the LLM generates five hash-tags for the post,
-        among which two are slightly opposite to the original stance.
-        The hash-tags are added to the end of the post.
-        """
-        post = entry["text"]
-        stance = entry["stance"]
-        prompt = TAGS.format(
-            text=post,
-            stance=stance,
-            target=entry["target"],
-            direction=negate_stance(stance),
-        )
-
-        return [f"{post}\n\n{tags}" for tags in self._gen(prompt)]
-
     def mutate(self, entry: StanceDataEntry) -> list[str]:
         """generates a list of mutated entries from the input entry"""
-        mutator = random.choice(self.mutators)
-        texts = mutator(entry)
+        texts = self.rewrite(entry)
         return texts
