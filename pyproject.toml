@@ -9,6 +9,7 @@ dependencies = [
     "datasets>=4.0.0",
     "dotenv>=0.9.9",
     "fire>=0.7.1",
+    "google-genai>=1.47.0",
     "numpy>=2.3.2",
     "openai==1.58.1",
     "orjson>=3.11.2",
