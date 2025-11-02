@@ -208,3 +208,5 @@ __marimo__/
 
 .vscode/
 results/
+saved_models/
+saved_models
