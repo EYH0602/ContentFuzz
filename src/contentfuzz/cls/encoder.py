@@ -6,7 +6,7 @@ from .._types import Stance
 from ._base import AnalysisOutput
 
 
-class FinetunedEncoder:
+class Encoder:
     """BERT-style encoder classifier (forward-only).
 
     - Tokenizes `(text, target)` as a sentence pair.

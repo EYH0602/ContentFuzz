@@ -8,8 +8,8 @@ from contentfuzz.cls import (
     StanceAnalyzer,
     OpenAIAnalyzer,
     COLA,
-    FinetunedEncoder,
-    ANALYZER,
+    Encoder,
+    Analyzer,
 )
 from contentfuzz.stance_dataset import StanceDataset, load_c_stance, DATASET
 from contentfuzz.evaluate import (
@@ -22,7 +22,7 @@ from contentfuzz.run import run_generation
 
 def main(
     dataset_name: DATASET,
-    analyzer_name: ANALYZER,
+    analyzer_name: Analyzer,
     model: str = "gpt-4.1-nano",
     output_result_path: str | None = None,
 ) -> None:
@@ -54,7 +54,7 @@ def main(
         case "cola":
             analyzer = COLA(model=model)
         case "encoder":
-            analyzer = FinetunedEncoder(model=model)
+            analyzer = Encoder(model=model)
 
     logging.info(f"Running {analyzer.__class__.__name__} with {analyzer.model}.")
     results = run_generation(
