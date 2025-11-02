@@ -4,7 +4,13 @@ import os
 import pandas as pd
 import fire
 
-from contentfuzz.cls import StanceAnalyzer, OpenAIAnalyzer, COLA, ANALYZER
+from contentfuzz.cls import (
+    StanceAnalyzer,
+    OpenAIAnalyzer,
+    COLA,
+    FinetunedEncoder,
+    ANALYZER,
+)
 from contentfuzz.stance_dataset import StanceDataset, load_c_stance, DATASET
 from contentfuzz.evaluate import (
     EvalMetrics,
@@ -31,7 +37,9 @@ def main(
 
     if output_result_path is None:
         os.makedirs("results", exist_ok=True)
-        output_result_path = f"results/{analyzer_name}+{model}+{dataset_name}.jsonl"
+        output_result_path = (
+            f"results/{analyzer_name}+{model.replace("/", "--")}+{dataset_name}.jsonl"
+        )
 
     # dataset only have C-STANCE for now
     dataset: StanceDataset
@@ -45,6 +53,8 @@ def main(
             analyzer = OpenAIAnalyzer(model=model)
         case "cola":
             analyzer = COLA(model=model)
+        case "encoder":
+            analyzer = FinetunedEncoder(model=model)
 
     logging.info(f"Running {analyzer.__class__.__name__} with {analyzer.model}.")
     results = run_generation(
