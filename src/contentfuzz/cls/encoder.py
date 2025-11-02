@@ -6,6 +6,11 @@ from .._types import Stance
 from ._base import AnalysisOutput
 
 
+def to_prompt(text: str, target: str) -> str:
+    """combine post text and target to prompt as as fine-tuning"""
+    return f"Text: {text} \nTarget: {target}\n"
+
+
 class Encoder:
     """BERT-style encoder classifier (forward-only).
 
@@ -47,14 +52,14 @@ class Encoder:
         Note: this method is decorated with `@safe`, so callers receive a
         `Result` wrapping the output or an exception.
         """
-        # todo: process text + target the same format as fine-tuning
         # Tokenize as a sentence pair for stance classification
+        # tokenization setting is the same as fine-tuning
         batch = self._tokenizer(
-            text,
-            target,
-            return_tensors="pt",
+            to_prompt(text, target),
             truncation=True,
-            padding=True,
+            padding="max_length",
+            max_length=512,
+            return_tensors="pt",
         )
 
         with torch.no_grad():
