@@ -25,7 +25,10 @@ class Encoder:
         self.model = model
         # Lazy-load tokenizer/model so construction is lightweight in notebooks/CLIs
         self._tokenizer = AutoTokenizer.from_pretrained(model)
-        self._model = AutoModelForSequenceClassification.from_pretrained(model)
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._model = AutoModelForSequenceClassification.from_pretrained(model).to(
+            self._device
+        )
         self._model.eval()
 
         # Build id->stance mapping from model labels when possible
@@ -61,6 +64,7 @@ class Encoder:
             max_length=512,
             return_tensors="pt",
         )
+        batch = {key: value.to(self._device) for key, value in batch.items()}
 
         with torch.no_grad():
             outputs = self._model(**batch)
