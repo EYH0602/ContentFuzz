@@ -1,4 +1,5 @@
-import fire
+import argparse
+from typing import get_args
 from returns.maybe import Maybe, Some, Nothing  # noqa: F401
 from orjsonl import orjsonl
 from tqdm import tqdm
@@ -60,4 +61,38 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    parser = argparse.ArgumentParser(
+        description="Run ContentFuzz mutation attacks against classification results."
+    )
+    dataset_choices = get_args(C_STANCE)
+    parser.add_argument(
+        "dataset_name",
+        choices=dataset_choices,
+        help="Dataset to evaluate.",
+    )
+    parser.add_argument(
+        "-g",
+        "--generate-result-path",
+        dest="generate_result_path",
+        default="results/c_stance_A_gpt-4.1-nano.jsonl",
+        help=(
+            "Path to baseline generation results JSONL; defaults to "
+            "results/c_stance_A_gpt-4.1-nano.jsonl."
+        ),
+    )
+    parser.add_argument(
+        "-a",
+        "--attack-result-path",
+        dest="attack_result_path",
+        default="results/c_stance_A_gpt-4.1-nano.attack.jsonl",
+        help=(
+            "Path to write attack results JSONL; defaults to "
+            "results/c_stance_A_gpt-4.1-nano.attack.jsonl."
+        ),
+    )
+    args = parser.parse_args()
+    main(
+        dataset_name=args.dataset_name,
+        generate_result_path=args.generate_result_path,
+        attack_result_path=args.attack_result_path,
+    )
