@@ -12,7 +12,7 @@ ONLY output one word chosen from Favor, Against, Neutral.
 class ZeroshotAnalyzer:
     """Zero-shot stance analysis using OpenAI API"""
 
-    def __init__(self, model: str = "gpt-4.1-nano"):
+    def __init__(self, model: str = "gemini-2.5-flash-lite"):
         # self.model, self.client = _get_model_and_client(model)
         self.model = model
         self.client = get_vertexai_client()

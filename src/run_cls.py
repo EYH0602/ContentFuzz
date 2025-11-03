@@ -12,7 +12,7 @@ from contentfuzz.cls import (
     Encoder,
     Analyzer,
 )
-from contentfuzz.stance_dataset import StanceDataset, load_c_stance, DATASET
+from contentfuzz.stance_dataset import StanceDataset, load_c_stance, Dataset
 from contentfuzz.evaluate import (
     EvalMetrics,
     compute_metrics,
@@ -23,9 +23,10 @@ from contentfuzz.utils import SEED
 
 
 def main(
-    dataset_name: DATASET,
+    dataset_name: Dataset,
     analyzer_name: Analyzer,
     model: str = "gemini-2.5-flash-lite",
+    sample_n: int | None = None,
     output_result_path: str | None = None,
 ) -> None:
     """Main entry point to run Stance Analysis in ContentFuzz.
@@ -49,6 +50,9 @@ def main(
     match dataset_name:
         case "c-stance-a" | "c-stance-b":
             dataset = load_c_stance(dataset_name, "test")
+
+    if sample_n is not None:
+        dataset = random.sample(dataset, sample_n)
 
     analyzer: StanceAnalyzer
     match analyzer_name:
