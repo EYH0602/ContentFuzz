@@ -1,7 +1,6 @@
 import random
 import logging
-from returns.result import Success, Failure
-from returns.maybe import Maybe, Some, Nothing
+from returns.result import Success, Failure, Result
 from ..cls import StanceAnalyzer
 from .mutator import Mutator
 from ..stance_dataset import StanceDataEntry
@@ -46,7 +45,7 @@ class Fuzzer:
             for text in rephrased
         ], seed
 
-    def run(self) -> Maybe[FuzzOutput]:
+    def run(self) -> Result[FuzzOutput, None]:
         """run one iteration of fuzzing"""
 
         rephrased_posts, seed = self.fuzz()
@@ -67,7 +66,7 @@ class Fuzzer:
                         # update temperature energy with current success ratio
                         if total_generated:
                             self.mutator.update_energy(num_added / total_generated)
-                        return Some((p["text"], stance, confidence))
+                        return Success((p["text"], stance, confidence))
 
                     p["stance"] = stance
 
@@ -82,18 +81,18 @@ class Fuzzer:
         # after evaluating all, update temperature energy with fraction added
         if total_generated:
             self.mutator.update_energy(num_added / total_generated)
-        return Nothing
+        return Failure(None)
 
     def runs(
         self, original_post: StanceDataEntry, n_iters: int = 10
-    ) -> Maybe[FuzzOutput]:
+    ) -> Result[FuzzOutput, None]:
         """run multiple iterations of fuzzing, return the first successful seed"""
         self.population.append((original_post, 1.0))
         for _ in range(n_iters):
             match self.run():
-                case Some(seed):
-                    return Some(seed)
+                case Success(seed):
+                    return Success(seed)
 
                 case _:
                     continue
-        return Nothing  # noqa: F811
+        return Failure(None)

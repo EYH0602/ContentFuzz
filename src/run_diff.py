@@ -1,6 +1,6 @@
 import argparse
 from typing import get_args
-from returns.maybe import Maybe, Some, Nothing  # noqa: F401
+from returns.result import Success, Failure
 from orjsonl import orjsonl
 from tqdm import tqdm
 from contentfuzz.evaluate import (
@@ -22,7 +22,7 @@ def mutate_and_classify(mutate, classifier, task: StanceDataEntry):
     return mutated
 
 
-def main(
+def main(  # pylint: disable=too-many-locals
     dataset_name: C_STANCE,
     generate_result_path: str = "results/c_stance_A_gpt-4.1-nano.jsonl",
     attack_result_path: str = "results/c_stance_A_gpt-4.1-nano.attack.jsonl",
@@ -45,15 +45,14 @@ def main(
     for t in tqdm(ct):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
-            case Some((mutated_text, stance, confidence)):
+            case Success((mutated_text, stance, confidence)):
                 log_obj = task | {
                     "new_text": mutated_text,
-                    "predicted": stance.label,
-                    "rationale": stance.rationale,
+                    "predicted": stance,
                     "confidence": confidence,
                 }
                 orjsonl.append(attack_result_path, log_obj)
-            case Nothing:  # noqa: F811, F841
+            case Failure(_):
                 continue
     n_succ = len(orjsonl.load(attack_result_path))
     n_total = len(ct)
