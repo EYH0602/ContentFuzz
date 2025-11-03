@@ -1,29 +1,32 @@
 import logging
 import os
+import random
 
 import pandas as pd
 import fire
 
 from contentfuzz.cls import (
     StanceAnalyzer,
-    OpenAIAnalyzer,
+    ZeroshotAnalyzer,
     COLA,
     Encoder,
     Analyzer,
 )
-from contentfuzz.stance_dataset import StanceDataset, load_c_stance, DATASET
+from contentfuzz.stance_dataset import StanceDataset, load_c_stance, Dataset
 from contentfuzz.evaluate import (
     EvalMetrics,
     compute_metrics,
     print_eval_metrics,
 )
 from contentfuzz.run import run_generation
+from contentfuzz.utils import SEED
 
 
 def main(
-    dataset_name: DATASET,
+    dataset_name: Dataset,
     analyzer_name: Analyzer,
-    model: str = "gpt-4.1-nano",
+    model: str = "gemini-2.5-flash-lite",
+    sample_n: int | None = None,
     output_result_path: str | None = None,
 ) -> None:
     """Main entry point to run Stance Analysis in ContentFuzz.
@@ -41,16 +44,20 @@ def main(
             f"results/{analyzer_name}+{model.replace("/", "--")}+{dataset_name}.jsonl"
         )
 
+    random.seed(SEED)
     # dataset only have C-STANCE for now
     dataset: StanceDataset
     match dataset_name:
         case "c-stance-a" | "c-stance-b":
             dataset = load_c_stance(dataset_name, "test")
 
+    if sample_n is not None:
+        dataset = random.sample(dataset, sample_n)
+
     analyzer: StanceAnalyzer
     match analyzer_name:
         case "zero-shot":
-            analyzer = OpenAIAnalyzer(model=model)
+            analyzer = ZeroshotAnalyzer(model=model)
         case "cola":
             analyzer = COLA(model=model)
         case "encoder":

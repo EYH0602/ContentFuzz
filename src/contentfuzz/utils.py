@@ -1,5 +1,6 @@
 from functools import wraps
 from typing import Callable, ParamSpec, TypeVar
+import os
 
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
@@ -17,3 +18,5 @@ def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
 
     return wrapper
 
+
+SEED = int(os.getenv("SEED", "0"))

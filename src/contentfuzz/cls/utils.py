@@ -1,14 +1,24 @@
+from typing import get_args
 from math import exp
 import os
 
 from openai import OpenAI
+from google import genai
+from google.genai.types import (
+    GenerateContentConfig,
+    AutomaticFunctionCallingConfig,
+    ThinkingConfig,
+)
 from returns.result import safe
 from structured_logprobs import add_logprobs
+from deprecated import deprecated
 
 from ._base import AnalysisOutput, ClassifierOutput
-from ..utils import exp_retry
+from ..utils import exp_retry, SEED
+from .._types import Stance, is_valid_stance
 
 
+@deprecated(reason="Use Google Gemini instead.")
 def _get_model_and_client(model_name: str) -> tuple[str, OpenAI]:
     use_ppio = model_name in MODEL_NAME_MAP
     key_name = "PPIO_API_KEY" if use_ppio else "OPENAI_API_KEY"
@@ -23,6 +33,7 @@ def _get_model_and_client(model_name: str) -> tuple[str, OpenAI]:
     return model, client
 
 
+@deprecated(reason="Use Google Gemini instead.")
 def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str]:
     """simple thinking content parser for Qwen models"""
     if delim not in text:
@@ -35,9 +46,10 @@ def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str
     return reasoning, answer
 
 
+@deprecated(reason="Use Google Gemini instead.")
 @safe
 @exp_retry
-def classify_w_prob(
+def classify_w_prob_openai(
     client: OpenAI,
     model: str,
     system_prompt: str | None,
@@ -94,3 +106,73 @@ MODEL_NAME_MAP: dict[str, str] = {
     "qwen3-30b-a3b-fp8": "qwen/qwen3-30b-a3b-fp8",
     "deepseek-r1-0528-qwen3-8b": "deepseek/deepseek-r1-0528-qwen3-8b",
 }
+
+
+def get_vertexai_client() -> genai.Client:
+    """Create a google-genai client with Vertex AI API endpoints.
+    Vertex AI is required to access logprobs from Gemini models.
+    """
+    client = genai.Client(
+        vertexai=True,
+        api_key=os.getenv("VERTEXAI_API_KEY"),
+    )
+    return client
+
+
+def _parse_gemini_prob(candidate) -> float | None:
+    """Return probability computed from candidate logprobs if available."""
+    logprobs_result = getattr(candidate, "logprobs_result", None)
+    if not logprobs_result or not getattr(logprobs_result, "chosen_candidates", None):
+        return None
+
+    log_prob_sum = 0.0
+    for chosen in logprobs_result.chosen_candidates:
+        token_log_prob = getattr(chosen, "log_probability", None)
+        if token_log_prob is None:
+            return None
+        log_prob_sum += token_log_prob
+    return exp(log_prob_sum)
+
+
+@safe
+@exp_retry
+def classify_w_prob(
+    client: genai.Client,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+) -> AnalysisOutput:
+    """Request a stance classification from Google Gemini with log probabilities."""
+
+    response_schema = {
+        "type": "STRING",
+        "enum": get_args(Stance),
+    }
+    response = client.models.generate_content(
+        model=model,
+        contents=user_prompt,
+        config=GenerateContentConfig(
+            temperature=0,
+            system_instruction=system_prompt,
+            response_mime_type="text/x.enum",
+            response_schema=response_schema,
+            response_logprobs=True,
+            logprobs=1,
+            seed=SEED,
+            automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+            thinking_config=ThinkingConfig(
+                thinking_budget=0,  # disable thinking
+            ),
+        ),
+    )
+
+    if not response.candidates:
+        raise ValueError("Gemini API returned no candidates")
+
+    candidate = response.candidates[0]
+    stance = response.text
+
+    if not stance or not is_valid_stance(stance):
+        raise ValueError(f"Invalid stance output: {stance}")
+
+    return stance, _parse_gemini_prob(candidate)

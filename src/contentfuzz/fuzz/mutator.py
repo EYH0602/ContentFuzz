@@ -1,11 +1,18 @@
 import os
 import random
 
-from openai import OpenAI
+from google import genai
+from google.genai.types import (
+    GenerateContentConfig,
+    ThinkingConfig,
+    GenerateContentResponse,
+    AutomaticFunctionCallingConfig,
+)
 
 from .prompts import INSTRUCTION, REWRITE
+from .utils import get_texts
 from ..stance_dataset import StanceDataEntry
-from ..utils import exp_retry
+from ..utils import exp_retry, SEED
 
 
 class Mutator:
@@ -37,12 +44,13 @@ class Mutator:
         n: int = 5,
         temperature: float | None = None,
     ):
+        assert 1 <= n <= 8, "n in [1,8] is supported"
 
-        api_key = os.getenv("OPENAI_API_KEY")
-        assert api_key is not None, "OPENAI_API_KEY environment variable is not set"
+        api_key = os.getenv("GEMINI_API_KEY")
+        assert api_key is not None, "GEMINI_API_KEY environment variable is not set"
 
         self.model = model
-        self.client = OpenAI(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         self.n = n
         # If temperature is None, enable scheduling; otherwise use fixed temperature
         self.use_temp_schedule: bool = temperature is None
@@ -93,23 +101,22 @@ class Mutator:
     @exp_retry
     def _gen(self, prompt: str) -> list[str]:
         temperature = self._choose_temperature()
-        completion = self.client.chat.completions.create(
+        response: GenerateContentResponse = self.client.models.generate_content(
             model=self.model,
-            messages=[
-                {"role": "system", "content": INSTRUCTION},
-                {"role": "user", "content": prompt},
-            ],
-            n=self.n,
-            temperature=temperature,
+            contents=prompt,
+            config=GenerateContentConfig(
+                system_instruction=INSTRUCTION,
+                thinking_config=ThinkingConfig(
+                    thinking_budget=0,
+                ),
+                temperature=temperature,
+                candidate_count=self.n,
+                seed=SEED,
+                automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+            ),
         )
 
-        contents = [
-            choice.message.content
-            for choice in completion.choices
-            if choice.message.content
-        ]
-
-        return contents
+        return get_texts(response)
 
     def rewrite(self, entry: StanceDataEntry) -> list[str]:
         """rewrite mutator, the LLM rewrites the post without changing its meaning"""

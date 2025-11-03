@@ -3,9 +3,10 @@ Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
 from returns.result import safe, Result, ResultE
+from deprecated import deprecated
 
 from ._base import AnalysisOutput
-from .utils import classify_w_prob, _get_model_and_client
+from .utils import _get_model_and_client, classify_w_prob_openai
 from ..utils import exp_retry
 
 # assign experts for target
@@ -58,6 +59,7 @@ Constraint: Answer with only the option above that is most accurate and nothing 
 """
 
 
+@deprecated(reason="Performance too low.")
 class COLA:
     """Zero-shot stance analysis using OpenAI API"""
 
@@ -181,7 +183,7 @@ class COLA:
             target=target,
         )
 
-        return classify_w_prob(self.client, self.model, None, prompt)
+        return classify_w_prob_openai(self.client, self.model, None, prompt)
 
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using COLA to analyze the stance of a given text"""

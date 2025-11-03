@@ -1,4 +1,4 @@
-from .utils import classify_w_prob, _get_model_and_client
+from .utils import classify_w_prob, get_vertexai_client
 
 
 INSTRUCTION = """
@@ -9,11 +9,13 @@ ONLY output one word chosen from Favor, Against, Neutral.
 """
 
 
-class OpenAIAnalyzer:
+class ZeroshotAnalyzer:
     """Zero-shot stance analysis using OpenAI API"""
 
-    def __init__(self, model: str = "gpt-4.1-nano"):
-        self.model, self.client = _get_model_and_client(model)
+    def __init__(self, model: str = "gemini-2.5-flash-lite"):
+        # self.model, self.client = _get_model_and_client(model)
+        self.model = model
+        self.client = get_vertexai_client()
 
     def analyze(self, text: str, target: str):
         """Using OpenAI API to analyze the stance of a given text"""
