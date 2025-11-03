@@ -105,10 +105,7 @@ if __name__ == "__main__":
         help="Analyzer strategy used to score mutated samples.",
     )
     parser.add_argument(
-        "-co",
-        "--cls-output-path",
         dest="cls_output_path",
-        default="results/c_stance_A_gpt-4.1-nano.jsonl",
         help=(
             "Path to baseline generation results JSONL; defaults to "
             "results/c_stance_A_gpt-4.1-nano.jsonl."
