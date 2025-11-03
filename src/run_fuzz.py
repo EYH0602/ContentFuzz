@@ -25,7 +25,8 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     dataset_name: Dataset,
     analyzer_name: Analyzer,
     cls_output_path: str,
-    model: str = "gemini-2.5-flash-lite",
+    fuzzer_model: str = "gemini-2.5-flash-lite",
+    cls_model: str = "gemini-2.5-flash-lite",
     attack_output_path: str | None = None,
     temperature: float | None = None,
     mutate_n: int = 5,
@@ -43,7 +44,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         attack_output_path = get_default_atk_output_path(
             output_dir,
             cls_output_path,
-            f"{model}{temp_ext}",
+            f"{fuzzer_model}{temp_ext}",
         )
 
     random.seed(SEED)
@@ -55,9 +56,9 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     analyzer: StanceAnalyzer
     match analyzer_name:
         case "zeroshot":
-            analyzer = ZeroshotAnalyzer(model=model)
+            analyzer = ZeroshotAnalyzer(model=cls_model)
         case "encoder":
-            analyzer = Encoder(model=model)
+            analyzer = Encoder(model=cls_model)
 
     gen_results = load_gen_results(cls_output_path)
 
@@ -67,7 +68,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     # ct = correct_tasks.iloc[0].to_dict()
     ct = correct_tasks.to_dict("records")
 
-    mutator = Mutator(model=model, n=mutate_n, temperature=temperature)
+    mutator = Mutator(model=fuzzer_model, n=mutate_n, temperature=temperature)
     fuzzer = Fuzzer(analyzer, mutator)
 
     for t in tqdm(ct):
@@ -92,10 +93,16 @@ if __name__ == "__main__":
         description="Run ContentFuzz mutation attacks against classification results."
     )
     dataset_choices = get_args(Dataset)
+    analyzer_choices = get_args(Analyzer)
     parser.add_argument(
         "dataset_name",
         choices=dataset_choices,
         help="Dataset to evaluate.",
+    )
+    parser.add_argument(
+        "analyzer_name",
+        choices=analyzer_choices,
+        help="Analyzer strategy used to score mutated samples.",
     )
     parser.add_argument(
         "-co",
@@ -111,15 +118,50 @@ if __name__ == "__main__":
         "-ao",
         "--attack-output-path",
         dest="attack_output_path",
-        default="results/c_stance_A_gpt-4.1-nano.attack.jsonl",
+        default=None,
         help=(
-            "Path to write attack results JSONL; defaults to "
-            "results/c_stance_A_gpt-4.1-nano.attack.jsonl."
+            "Path to write attack results JSONL; defaults to the automatic "
+            "path derived from the classifier outputs."
         ),
+    )
+    parser.add_argument(
+        "-fm",
+        "--fuzzer-model",
+        dest="fuzzer_model",
+        default="gemini-2.5-flash-lite",
+        help="Model to use for fuzzing.",
+    )
+    parser.add_argument(
+        "-cm",
+        "--cls-model",
+        dest="cls_model",
+        default="gemini-2.5-flash-lite",
+        help="Model to use for stance analysis.",
+    )
+    parser.add_argument(
+        "-t",
+        "--temperature",
+        dest="temperature",
+        type=float,
+        default=None,
+        help="Optional temperature to sample mutations. If None, enable temperature scheduling",
+    )
+    parser.add_argument(
+        "-n",
+        "--mutate-n",
+        dest="mutate_n",
+        type=int,
+        default=5,
+        help="Number of mutations to generate per task.",
     )
     args = parser.parse_args()
     main(
         dataset_name=args.dataset_name,
+        analyzer_name=args.analyzer_name,
         cls_output_path=args.cls_output_path,
+        fuzzer_model=args.fuzzer_model,
+        cls_model=args.cls_model,
         attack_output_path=args.attack_output_path,
+        temperature=args.temperature,
+        mutate_n=args.mutate_n,
     )
