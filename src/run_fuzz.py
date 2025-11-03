@@ -2,6 +2,7 @@ import argparse
 import os
 from typing import get_args
 import random
+import logging
 
 from returns.result import Success, Failure
 from orjsonl import orjsonl
@@ -9,6 +10,8 @@ from tqdm import tqdm
 from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
+    compute_metrics,
+    print_eval_metrics,
 )
 from contentfuzz.stance_dataset import (
     load_c_stance,
@@ -64,6 +67,10 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
 
     assert len(dataset) == len(gen_results), "Dataset and results length mismatch"
 
+    logging.info(f"{analyzer_name} w/ {cls_model} on {dataset_name}")
+    metrics = compute_metrics(gen_results)
+    print_eval_metrics(metrics)
+
     correct_tasks, _ = get_correct_tasks(dataset, gen_results)
     # ct = correct_tasks.iloc[0].to_dict()
     ct = correct_tasks.to_dict("records")
@@ -71,6 +78,12 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     mutator = Mutator(model=fuzzer_model, n=mutate_n, temperature=temperature)
     fuzzer = Fuzzer(analyzer, mutator)
 
+    temp_msg = (
+        "+ temperature scheduling"
+        if temperature is None
+        else f"+ temperature = {temperature}"
+    )
+    logging.info(f"Fuzzing with {fuzzer_model} {temp_msg}")
     for t in tqdm(ct):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
