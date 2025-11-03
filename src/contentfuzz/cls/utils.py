@@ -4,7 +4,11 @@ import os
 
 from openai import OpenAI
 from google import genai
-from google.genai.types import GenerateContentConfig
+from google.genai.types import (
+    GenerateContentConfig,
+    AutomaticFunctionCallingConfig,
+    ThinkingConfig,
+)
 from returns.result import safe
 from structured_logprobs import add_logprobs
 from deprecated import deprecated
@@ -155,6 +159,10 @@ def classify_w_prob(
             response_logprobs=True,
             logprobs=1,
             seed=SEED,
+            automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+            thinking_config=ThinkingConfig(
+                thinking_budget=0,  # disable thinking
+            ),
         ),
     )
 

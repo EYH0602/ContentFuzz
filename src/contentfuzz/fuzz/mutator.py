@@ -6,6 +6,7 @@ from google.genai.types import (
     GenerateContentConfig,
     ThinkingConfig,
     GenerateContentResponse,
+    AutomaticFunctionCallingConfig,
 )
 
 from .prompts import INSTRUCTION, REWRITE
@@ -111,6 +112,7 @@ class Mutator:
                 temperature=temperature,
                 candidate_count=self.n,
                 seed=SEED,
+                automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
             ),
         )
 
