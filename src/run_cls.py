@@ -34,7 +34,7 @@ def main(
     Args:
         dataset_name: Which dataset to use ("c-stance-a" or "c-stance-b").
         analyzer_name: Which analyzer to use ("zero-shot", "cola").
-        model: which OpenAI model to use
+        model: which Gemini model to use
         output_result_path: Path to save results JSONL.
     """
 
