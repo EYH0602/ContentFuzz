@@ -91,12 +91,12 @@ def _label_to_stance(label: str) -> Stance | None:
     and "neutral"/"irrelevant" (case-insensitive).
     Returns None if it cannot confidently determine a mapping.
     """
-    l = label.lower()
-    if any(k in l for k in ("favor", "support", "pro", "label_0", "支持")):
+    label = label.lower()
+    if any(k in label for k in ("favor", "support", "pro", "label_0", "支持")):
         return "Favor"
-    if any(k in l for k in ("against", "oppose", "anti", "con", "label_1", "反对")):
+    if any(k in label for k in ("against", "oppose", "anti", "con", "label_1", "反对")):
         return "Against"
-    if any(k in l for k in ("neutral", "irrelevant", "label_2", "中立")):
+    if any(k in label for k in ("neutral", "irrelevant", "label_2", "中立")):
         return "Neutral"
     # Hugging Face default labels (LABEL_0, LABEL_1, LABEL_2) are ambiguous
     return None
