@@ -1,9 +1,10 @@
+import argparse
 import logging
 import os
 import random
 
 import pandas as pd
-import fire
+from typing import get_args
 
 from contentfuzz.cls import (
     StanceAnalyzer,
@@ -31,11 +32,8 @@ def main(
 ) -> None:
     """Main entry point to run Stance Analysis in ContentFuzz.
 
-    Args:
-        dataset_name: Which dataset to use ("c-stance-a" or "c-stance-b").
-        analyzer_name: Which analyzer to use ("zero-shot", "cola").
-        model: which OpenAI model to use
-        output_result_path: Path to save results JSONL.
+    Usage:
+    python src/run_cls.py -h
     """
 
     if output_result_path is None:
@@ -76,4 +74,48 @@ def main(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    fire.Fire(main)
+    dataset_choices = get_args(Dataset)
+    analyzer_choices = get_args(Analyzer)
+    parser = argparse.ArgumentParser(
+        description="Run ContentFuzz stance classification experiment."
+    )
+    parser.add_argument(
+        "dataset_name",
+        choices=dataset_choices,
+        help="Dataset to evaluate.",
+    )
+    parser.add_argument(
+        "analyzer_name",
+        choices=analyzer_choices,
+        help="Analyzer to run.",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        default="gemini-2.5-flash-lite",
+        help="Gemini Model to use for generation.",
+    )
+    parser.add_argument(
+        "-n",
+        "--sample-n",
+        dest="sample_n",
+        type=int,
+        help="Optional number of dataset rows to sample before running.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-result-path",
+        dest="output_result_path",
+        help=(
+            "Optional path to store generation results JSONL; defaults to "
+            "results/{analyzer}+{model}+{dataset}.jsonl."
+        ),
+    )
+    args = parser.parse_args()
+    main(
+        dataset_name=args.dataset_name,
+        analyzer_name=args.analyzer_name,
+        model=args.model,
+        sample_n=args.sample_n,
+        output_result_path=args.output_result_path,
+    )
