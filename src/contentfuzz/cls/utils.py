@@ -10,7 +10,7 @@ from structured_logprobs import add_logprobs
 from deprecated import deprecated
 
 from ._base import AnalysisOutput, ClassifierOutput
-from ..utils import exp_retry
+from ..utils import exp_retry, SEED
 from .._types import Stance, is_valid_stance
 
 
@@ -154,6 +154,7 @@ def classify_w_prob(
             response_schema=response_schema,
             response_logprobs=True,
             logprobs=1,
+            seed=SEED,
         ),
     )
 

@@ -9,7 +9,7 @@ ONLY output one word chosen from Favor, Against, Neutral.
 """
 
 
-class OpenAIAnalyzer:
+class ZeroshotAnalyzer:
     """Zero-shot stance analysis using OpenAI API"""
 
     def __init__(self, model: str = "gpt-4.1-nano"):

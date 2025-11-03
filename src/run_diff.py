@@ -8,7 +8,7 @@ from contentfuzz.evaluate import (
 )
 from contentfuzz.stance_dataset import load_c_stance, StanceDataEntry, C_STANCE
 from contentfuzz.fuzz import Mutator, Fuzzer
-from contentfuzz.cls import OpenAIAnalyzer
+from contentfuzz.cls import ZeroshotAnalyzer
 
 
 def mutate_and_classify(mutate, classifier, task: StanceDataEntry):
@@ -38,7 +38,7 @@ def main(
     ct = correct_tasks.to_dict("records")
 
     mutator = Mutator()
-    classifier = OpenAIAnalyzer()
+    classifier = ZeroshotAnalyzer()
     fuzzer = Fuzzer(classifier, mutator)
 
     for t in tqdm(ct):

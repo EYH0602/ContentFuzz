@@ -11,7 +11,7 @@ from google.genai.types import (
 from .prompts import INSTRUCTION, REWRITE
 from .utils import get_texts
 from ..stance_dataset import StanceDataEntry
-from ..utils import exp_retry
+from ..utils import exp_retry, SEED
 
 
 class Mutator:
@@ -110,6 +110,7 @@ class Mutator:
                 ),
                 temperature=temperature,
                 candidate_count=self.n,
+                seed=SEED,
             ),
         )
 
