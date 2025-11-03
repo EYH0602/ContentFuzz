@@ -7,30 +7,24 @@ from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
 )
-from contentfuzz.stance_dataset import load_c_stance, StanceDataEntry, C_STANCE
+from contentfuzz.stance_dataset import load_c_stance, StanceDataEntry, Dataset
 from contentfuzz.fuzz import Mutator, Fuzzer
 from contentfuzz.cls import ZeroshotAnalyzer
 
 
-def mutate_and_classify(mutate, classifier, task: StanceDataEntry):
-    """Mutate the task using the mutator and classify using the classifier"""
-    mutated = mutate(task)
-    for i, m in enumerate(mutated):
-        r = classifier.analyze(m, target=task["target"])
-        print(f"Variant {i}: {m}")
-        print(f"Classification: {r}")
-    return mutated
-
-
 def main(  # pylint: disable=too-many-locals
-    dataset_name: C_STANCE,
-    generate_result_path: str = "results/c_stance_A_gpt-4.1-nano.jsonl",
-    attack_result_path: str = "results/c_stance_A_gpt-4.1-nano.attack.jsonl",
+    dataset_name: Dataset,
+    cls_output_path: str = "results/c_stance_A_gpt-4.1-nano.jsonl",
+    attack_output_path: str = "results/c_stance_A_gpt-4.1-nano.attack.jsonl",
 ) -> None:
-    """Main entry point to run ContentFuzz"""
+    """Main entry point to run fuzzing in ContentFuzz
+    
+    Usage:
+    python src/run_fuzz.py -h
+    """
 
     dataset = load_c_stance(dataset_name, "test")
-    gen_results = load_gen_results(generate_result_path)
+    gen_results = load_gen_results(cls_output_path)
 
     assert len(dataset) == len(gen_results), "Dataset and results length mismatch"
 
@@ -51,10 +45,10 @@ def main(  # pylint: disable=too-many-locals
                     "predicted": stance,
                     "confidence": confidence,
                 }
-                orjsonl.append(attack_result_path, log_obj)
+                orjsonl.append(attack_output_path, log_obj)
             case Failure(_):
                 continue
-    n_succ = len(orjsonl.load(attack_result_path))
+    n_succ = len(orjsonl.load(attack_output_path))
     n_total = len(ct)
     print(f"Attack success rate: {n_succ}/{n_total} = {n_succ/n_total:.2%}")
 
@@ -63,16 +57,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run ContentFuzz mutation attacks against classification results."
     )
-    dataset_choices = get_args(C_STANCE)
+    dataset_choices = get_args(Dataset)
     parser.add_argument(
         "dataset_name",
         choices=dataset_choices,
         help="Dataset to evaluate.",
     )
     parser.add_argument(
-        "-g",
-        "--generate-result-path",
-        dest="generate_result_path",
+        "-co",
+        "--cls-output-path",
+        dest="cls_output_path",
         default="results/c_stance_A_gpt-4.1-nano.jsonl",
         help=(
             "Path to baseline generation results JSONL; defaults to "
@@ -80,9 +74,9 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
-        "-a",
-        "--attack-result-path",
-        dest="attack_result_path",
+        "-ao",
+        "--attack-output-path",
+        dest="attack_output_path",
         default="results/c_stance_A_gpt-4.1-nano.attack.jsonl",
         help=(
             "Path to write attack results JSONL; defaults to "
@@ -92,6 +86,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(
         dataset_name=args.dataset_name,
-        generate_result_path=args.generate_result_path,
-        attack_result_path=args.attack_result_path,
+        cls_output_path=args.cls_output_path,
+        attack_output_path=args.attack_output_path,
     )
