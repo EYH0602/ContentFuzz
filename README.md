@@ -43,5 +43,5 @@ uv run src/run_cls.py -h
 To evaluate the analysis results:
 
 ```sh
-uv run src/eval.py results/zero-shot+gpt-4.1+c-stance-a.jsonl
+uv run src/eval_cls.py results/zero-shot+gpt-4.1+c-stance-a.jsonl
 ```
