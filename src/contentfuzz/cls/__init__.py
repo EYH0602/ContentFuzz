@@ -4,16 +4,18 @@ from typing import Literal
 from ._base import StanceAnalyzer, AnalysisOutput
 from .zeroshot import OpenAIAnalyzer
 from .cola import COLA
+from .encoder import Encoder
 
 logging.getLogger("openai").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
-ANALYZER = Literal["zero-shot", "cola"]
+Analyzer = Literal["zero-shot", "cola", "encoder"]
 
 __all__ = [
     "StanceAnalyzer",
     "AnalysisOutput",
     "OpenAIAnalyzer",
     "COLA",
-    "ANALYZER",
+    "Encoder",
+    "Analyzer",
 ]
