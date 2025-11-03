@@ -20,7 +20,7 @@ from contentfuzz.evaluate import (
     print_eval_metrics,
 )
 from contentfuzz.run import run_generation
-from contentfuzz.utils import SEED
+from contentfuzz.utils import SEED, get_default_cls_output_path
 
 
 def main(
@@ -37,9 +37,10 @@ def main(
     """
 
     if output_result_path is None:
-        os.makedirs("results", exist_ok=True)
-        output_result_path = (
-            f"results/{analyzer_name}+{model.replace("/", "--")}+{dataset_name}.jsonl"
+        output_dir = os.path.abspath("results")
+        os.makedirs(output_dir, exist_ok=True)
+        output_result_path = get_default_cls_output_path(
+            output_dir, dataset_name, analyzer_name, model
         )
 
     random.seed(SEED)
@@ -54,7 +55,7 @@ def main(
 
     analyzer: StanceAnalyzer
     match analyzer_name:
-        case "zero-shot":
+        case "zeroshot":
             analyzer = ZeroshotAnalyzer(model=model)
         case "cola":
             analyzer = COLA(model=model)

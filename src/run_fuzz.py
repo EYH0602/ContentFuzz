@@ -1,5 +1,8 @@
 import argparse
+import os
 from typing import get_args
+import random
+
 from returns.result import Success, Failure
 from orjsonl import orjsonl
 from tqdm import tqdm
@@ -7,23 +10,55 @@ from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
 )
-from contentfuzz.stance_dataset import load_c_stance, StanceDataEntry, Dataset
+from contentfuzz.stance_dataset import (
+    load_c_stance,
+    StanceDataEntry,
+    Dataset,
+    StanceDataset,
+)
 from contentfuzz.fuzz import Mutator, Fuzzer
-from contentfuzz.cls import ZeroshotAnalyzer
+from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder
+from contentfuzz.utils import get_default_atk_output_path, SEED
 
 
-def main(  # pylint: disable=too-many-locals
+def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     dataset_name: Dataset,
-    cls_output_path: str = "results/c_stance_A_gpt-4.1-nano.jsonl",
-    attack_output_path: str = "results/c_stance_A_gpt-4.1-nano.attack.jsonl",
+    analyzer_name: Analyzer,
+    cls_output_path: str,
+    model: str = "gemini-2.5-flash-lite",
+    attack_output_path: str | None = None,
+    temperature: float | None = None,
+    mutate_n: int = 5,
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
-    
+
     Usage:
     python src/run_fuzz.py -h
     """
 
-    dataset = load_c_stance(dataset_name, "test")
+    if attack_output_path is None:
+        output_dir = os.path.abspath("fuzz")
+        os.makedirs(output_dir, exist_ok=True)
+        temp_ext = "" if temperature is None else f"-{str(temperature)}"
+        attack_output_path = get_default_atk_output_path(
+            output_dir,
+            cls_output_path,
+            f"{model}{temp_ext}",
+        )
+
+    random.seed(SEED)
+    dataset: StanceDataset
+    match dataset_name:
+        case "c-stance-a" | "c-stance-b":
+            dataset = load_c_stance(dataset_name, "test")
+
+    analyzer: StanceAnalyzer
+    match analyzer_name:
+        case "zeroshot":
+            analyzer = ZeroshotAnalyzer(model=model)
+        case "encoder":
+            analyzer = Encoder(model=model)
+
     gen_results = load_gen_results(cls_output_path)
 
     assert len(dataset) == len(gen_results), "Dataset and results length mismatch"
@@ -32,9 +67,8 @@ def main(  # pylint: disable=too-many-locals
     # ct = correct_tasks.iloc[0].to_dict()
     ct = correct_tasks.to_dict("records")
 
-    mutator = Mutator()
-    classifier = ZeroshotAnalyzer()
-    fuzzer = Fuzzer(classifier, mutator)
+    mutator = Mutator(model=model, n=mutate_n, temperature=temperature)
+    fuzzer = Fuzzer(analyzer, mutator)
 
     for t in tqdm(ct):
         task: StanceDataEntry = t  # type: ignore

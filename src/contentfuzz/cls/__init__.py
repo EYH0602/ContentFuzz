@@ -9,7 +9,7 @@ from .encoder import Encoder
 logging.getLogger("openai").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
-Analyzer = Literal["zero-shot", "cola", "encoder"]
+Analyzer = Literal["zeroshot", "cola", "encoder"]
 
 __all__ = [
     "StanceAnalyzer",
