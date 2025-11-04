@@ -8,6 +8,7 @@ from google.genai.types import (
     GenerateContentResponse,
     AutomaticFunctionCallingConfig,
 )
+from returns.result import safe, ResultE
 
 from .prompts import INSTRUCTION, REWRITE
 from .utils import get_texts
@@ -98,6 +99,7 @@ class Mutator:
         reward = max(0.0, float(reward))
         self._energies[self._last_temp_idx] += reward
 
+    @safe
     @exp_retry
     def _gen(self, prompt: str) -> list[str]:
         temperature = self._choose_temperature()
@@ -118,13 +120,13 @@ class Mutator:
 
         return get_texts(response)
 
-    def rewrite(self, entry: StanceDataEntry) -> list[str]:
+    def rewrite(self, entry: StanceDataEntry) -> ResultE[list[str]]:
         """rewrite mutator, the LLM rewrites the post without changing its meaning"""
         post = entry["text"]
         prompt = REWRITE.format(text=post)
         return self._gen(prompt)
 
-    def mutate(self, entry: StanceDataEntry) -> list[str]:
+    def mutate(self, entry: StanceDataEntry) -> ResultE[list[str]]:
         """generates a list of mutated entries from the input entry"""
         texts = self.rewrite(entry)
         return texts
