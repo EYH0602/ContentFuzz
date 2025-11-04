@@ -12,6 +12,7 @@ from contentfuzz.evaluate import (
     get_correct_tasks,
     compute_metrics,
     print_eval_metrics,
+    compute_fuzz_metrics,
 )
 from contentfuzz.stance_dataset import (
     load_c_stance,
@@ -22,6 +23,13 @@ from contentfuzz.stance_dataset import (
 from contentfuzz.fuzz import Mutator, Fuzzer
 from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder
 from contentfuzz.utils import get_default_atk_output_path, SEED
+
+
+def get_skip_cnt(file_path: str) -> int:
+    """count number of a record JSONL file"""
+    with open(file_path, "rb") as f:
+        num_lines = sum(1 for _ in f)
+    return num_lines
 
 
 def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
@@ -72,7 +80,6 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     print_eval_metrics(metrics)
 
     correct_tasks, _ = get_correct_tasks(dataset, gen_results)
-    # ct = correct_tasks.iloc[0].to_dict()
     ct = correct_tasks.to_dict("records")
 
     mutator = Mutator(model=fuzzer_model, n=mutate_n, temperature=temperature)
@@ -84,7 +91,15 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         else f"+ temperature = {temperature}"
     )
     logging.info(f"Fuzzing with {fuzzer_model} {temp_msg}")
-    for t in tqdm(ct):
+    n_succ = 0
+
+    # skip existing results
+    skip_count = get_skip_cnt(attack_output_path)
+    ct = ct[skip_count:]
+    if skip_count > 0:
+        logging.info(f"Found {skip_count} results in {attack_output_path}, skipping...")
+
+    for t in tqdm(ct, initial=skip_count, total=len(ct)):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
             case Success((mutated_text, stance, confidence)):
@@ -94,11 +109,14 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                     "confidence": confidence,
                 }
                 orjsonl.append(attack_output_path, log_obj)
-            case Failure(_):
-                continue
-    n_succ = len(orjsonl.load(attack_output_path))
-    n_total = len(ct)
-    print(f"Attack success rate: {n_succ}/{n_total} = {n_succ/n_total:.2%}")
+                n_succ += 1
+            case Failure(err):
+                err_obj = task | {"error": err}
+                orjsonl.append(attack_output_path, err_obj)
+
+    df = load_gen_results(attack_output_path)
+    fuzz_metrics = compute_fuzz_metrics(df)
+    print_eval_metrics(fuzz_metrics)
 
 
 if __name__ == "__main__":

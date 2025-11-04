@@ -17,12 +17,18 @@ class GenResult(TypedDict):
 
 
 class EvalMetrics(TypedDict):
-    """Evaluation metrics for model performance."""
+    """Evaluation metrics for model performance"""
 
     accuracy: float
     f1: float
     average_correct_confidence: float
     average_incorrect_confidence: float
+
+
+class FuzzMetrics(TypedDict):
+    """Evaluation metrics for fuzzing performance"""
+
+    attack_succ_rate: float
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -60,7 +66,7 @@ def compute_metrics(df: pd.DataFrame) -> EvalMetrics:
     }
 
 
-def print_eval_metrics(metrics: EvalMetrics) -> None:
+def print_eval_metrics(metrics: EvalMetrics | FuzzMetrics) -> None:
     """Print evaluation metrics."""
     print(
         orjson.dumps(
@@ -80,3 +86,29 @@ def get_correct_tasks(
     correct_indices = results[results["truth"] == results["predicted"]].index
     tasks_df = pd.DataFrame(tasks)
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
+
+
+def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
+    """
+    Compute fuzzing metrics where success is defined as matching stances.
+
+    A row is considered a failure if its predicted value equals "error";
+    otherwise, it is a success only when the predicted stance matches the
+    reference stance.
+    """
+
+    assert {"stance", "predicted"}.issubset(df.columns)
+
+    if df.empty:
+        return {"attack_succ_rate": 0.0}
+
+    predicted = df["predicted"].astype(str)
+    stance = df["stance"].astype(str)
+
+    # Failures include analyzer errors (predicted equals "error", case-insensitive)
+    error_mask = predicted.str.lower().eq("error")
+    success_mask = (~error_mask) & (stance == predicted)
+
+    attack_succ_rate = success_mask.sum() / len(df)
+
+    return {"attack_succ_rate": round(float(attack_succ_rate), 4)}
