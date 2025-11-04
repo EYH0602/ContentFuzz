@@ -127,6 +127,12 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                 err_obj = task | {"error": err}
                 orjsonl.append(attack_output_path, err_obj)
 
+    temp_counts, temp_freq = mutator.get_temperature_stats()
+    if temp_counts:
+        formatted_freq = {temp: round(freq, 4) for temp, freq in temp_freq.items()}
+        logging.info("Temperature sampling counts: %s", temp_counts)
+        logging.info("Temperature sampling frequencies: %s", formatted_freq)
+
     df = load_gen_results(attack_output_path)
     fuzz_metrics = compute_fuzz_metrics(df)
     print_eval_metrics(fuzz_metrics)
