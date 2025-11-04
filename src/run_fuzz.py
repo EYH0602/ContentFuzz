@@ -84,6 +84,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         else f"+ temperature = {temperature}"
     )
     logging.info(f"Fuzzing with {fuzzer_model} {temp_msg}")
+    n_succ = 0
     for t in tqdm(ct):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
@@ -94,9 +95,11 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                     "confidence": confidence,
                 }
                 orjsonl.append(attack_output_path, log_obj)
-            case Failure(_):
-                continue
-    n_succ = len(orjsonl.load(attack_output_path))
+                n_succ += 1
+            case Failure(err):
+                err_obj = task | {"error": err}
+                orjsonl.append(attack_output_path, err_obj)
+
     n_total = len(ct)
     print(f"Attack success rate: {n_succ}/{n_total} = {n_succ/n_total:.2%}")
 
