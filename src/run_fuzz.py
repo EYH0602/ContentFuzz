@@ -28,6 +28,8 @@ from contentfuzz.utils import get_default_atk_output_path, SEED
 
 def get_skip_cnt(file_path: str) -> int:
     """count number of a record JSONL file"""
+    if not os.path.isfile(file_path):
+        return 0
     with open(file_path, "rb") as f:
         num_lines = sum(1 for _ in f)
     return num_lines
