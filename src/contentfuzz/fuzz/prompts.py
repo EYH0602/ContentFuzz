@@ -6,6 +6,7 @@ You should NOT change the original meaning of the content.
 You should make sure the tone, style, and sentiment are preserved,
 and modifications should be as minimal as possible.
 Please ONLY output the revised text.
+ALWAYS preserve the language used in the post.
 """
 
 REWRITE = """
