@@ -102,6 +102,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(
         description="Run ContentFuzz mutation attacks against classification results."
     )
