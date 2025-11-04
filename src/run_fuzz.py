@@ -12,6 +12,7 @@ from contentfuzz.evaluate import (
     get_correct_tasks,
     compute_metrics,
     print_eval_metrics,
+    compute_fuzz_metrics,
 )
 from contentfuzz.stance_dataset import (
     load_c_stance,
@@ -113,8 +114,9 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                 err_obj = task | {"error": err}
                 orjsonl.append(attack_output_path, err_obj)
 
-    n_total = len(ct)
-    print(f"Attack success rate (this run): {n_succ}/{n_total} = {n_succ/n_total:.2%}")
+    df = load_gen_results(attack_output_path)
+    fuzz_metrics = compute_fuzz_metrics(df)
+    print_eval_metrics(fuzz_metrics)
 
 
 if __name__ == "__main__":
