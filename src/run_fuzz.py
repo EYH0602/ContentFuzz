@@ -3,10 +3,12 @@ import os
 from typing import get_args
 import random
 import logging
+import sys
 
 from returns.result import Success, Failure
 from orjsonl import orjsonl
 from tqdm import tqdm
+import orjson
 from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
@@ -27,9 +29,19 @@ from contentfuzz.utils import get_default_atk_output_path, SEED
 
 def get_skip_cnt(file_path: str) -> int:
     """count number of a record JSONL file"""
+    if not os.path.isfile(file_path):
+        return 0
     with open(file_path, "rb") as f:
         num_lines = sum(1 for _ in f)
     return num_lines
+
+
+def get_fuzzer_state_path(attack_output_path: str) -> str:
+    """Derive the path for storing serialized fuzzer state."""
+    base, ext = os.path.splitext(attack_output_path)
+    if ext == ".jsonl":
+        return f"{base}.fuzzer_stat.json"
+    return f"{attack_output_path}.fuzzer_stat.json"
 
 
 def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
@@ -41,6 +53,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     attack_output_path: str | None = None,
     temperature: float | None = None,
     mutate_n: int = 5,
+    sample_n: int | None = None,
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
 
@@ -51,7 +64,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     if attack_output_path is None:
         output_dir = os.path.abspath("fuzz")
         os.makedirs(output_dir, exist_ok=True)
-        temp_ext = "" if temperature is None else f"-{str(temperature)}"
+        temp_ext = "" if temperature is None else f"+temp-{str(temperature)}"
         attack_output_path = get_default_atk_output_path(
             output_dir,
             cls_output_path,
@@ -97,9 +110,20 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     skip_count = get_skip_cnt(attack_output_path)
     ct = ct[skip_count:]
     if skip_count > 0:
-        logging.info(f"Found {skip_count} results in {attack_output_path}, skipping...")
+        logging.info(
+            f"Found {skip_count} results in {attack_output_path}, skipping them..."
+        )
 
-    for t in tqdm(ct, initial=skip_count, total=len(ct)):
+    if sample_n is not None:
+        logging.info(f"Sampling {sample_n} from total {len(ct)} fuzzing tasks")
+        if sample_n <= 0:
+            logging.error(f"sample_n must be positive, got {sample_n}")
+            sys.exit(1)
+        ct = random.sample(ct, k=sample_n)
+
+    total_tasks_to_fuzz = len(ct)
+
+    for t in tqdm(ct, total=total_tasks_to_fuzz):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
             case Success((mutated_text, stance, confidence)):
@@ -117,6 +141,22 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     df = load_gen_results(attack_output_path)
     fuzz_metrics = compute_fuzz_metrics(df)
     print_eval_metrics(fuzz_metrics)
+
+    assert attack_output_path is not None
+    fuzzer_state_path = get_fuzzer_state_path(attack_output_path)
+    temp_counts = mutator.get_temperature_stats()
+    fuzzer_stats = {
+        "temperature_scheduling": temp_counts,
+    }
+    with open(fuzzer_state_path, "wb") as state_file:
+        state_file.write(
+            orjson.dumps(
+                fuzzer_stats,
+                option=(
+                    orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS
+                ),
+            )
+        )
 
 
 if __name__ == "__main__":
@@ -176,7 +216,15 @@ if __name__ == "__main__":
         help="Optional temperature to sample mutations. If None, enable temperature scheduling",
     )
     parser.add_argument(
-        "-n",
+        "-sn",
+        "--sample-n",
+        dest="sample_n",
+        type=int,
+        default=None,
+        help="Optional number of tasks to sample before fuzzing.",
+    )
+    parser.add_argument(
+        "-mn",
         "--mutate-n",
         dest="mutate_n",
         type=int,
@@ -193,4 +241,5 @@ if __name__ == "__main__":
         attack_output_path=args.attack_output_path,
         temperature=args.temperature,
         mutate_n=args.mutate_n,
+        sample_n=args.sample_n,
     )

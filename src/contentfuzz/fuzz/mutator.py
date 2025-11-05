@@ -1,5 +1,6 @@
 import os
 import random
+from collections import Counter
 
 from google import genai
 from google.genai.types import (
@@ -58,6 +59,7 @@ class Mutator:
         self.fixed_temperature: float | None = (
             None if temperature is None else float(temperature)
         )
+        self._temperature_counts: Counter[float]
 
         # Temperature scheduling state
         if self.use_temp_schedule:
@@ -66,6 +68,7 @@ class Mutator:
             # Start with equal energies (uniform probability)
             self._energies: list[float] = [1.0 for _ in self.temperatures]
             self._last_temp_idx: int | None = None
+            self._temperature_counts = Counter({temp: 0 for temp in self.temperatures})
         else:
             # Placeholders to keep attributes available if referenced
             # Use the provided fixed temperature
@@ -73,18 +76,23 @@ class Mutator:
             self.temperatures = [self.fixed_temperature]
             self._energies = [1.0]
             self._last_temp_idx = None
+            self._temperature_counts = Counter({self.fixed_temperature: 0})
 
     def _choose_temperature(self) -> float:
+        temperature: float
         # If scheduling disabled, always use the fixed base temperature
         if not self.use_temp_schedule:
             assert self.fixed_temperature is not None
-            return self.fixed_temperature
+            temperature = self.fixed_temperature
         # Weighted by energies; initially equal
-        idx = random.choices(
-            range(len(self.temperatures)), weights=self._energies, k=1
-        )[0]
-        self._last_temp_idx = idx
-        return self.temperatures[idx]
+        else:
+            idx = random.choices(
+                range(len(self.temperatures)), weights=self._energies, k=1
+            )[0]
+            self._last_temp_idx = idx
+            temperature = self.temperatures[idx]
+        self._temperature_counts[temperature] += 1
+        return temperature
 
     def update_energy(self, reward: float) -> None:
         """Increase energy of the last-used temperature by reward (e.g., m/n).
@@ -130,3 +138,8 @@ class Mutator:
         """generates a list of mutated entries from the input entry"""
         texts = self.rewrite(entry)
         return texts
+
+    def get_temperature_stats(self) -> dict[float, int]:
+        """Return count for every tracked temperature."""
+        counts = dict(sorted(self._temperature_counts.items()))
+        return counts
