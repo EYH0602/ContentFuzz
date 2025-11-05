@@ -139,13 +139,7 @@ class Mutator:
         texts = self.rewrite(entry)
         return texts
 
-    def get_temperature_stats(self) -> tuple[dict[float, int], dict[float, float]]:
-        """Return count and normalized frequency for every tracked temperature."""
+    def get_temperature_stats(self) -> dict[float, int]:
+        """Return count for every tracked temperature."""
         counts = dict(sorted(self._temperature_counts.items()))
-        total = sum(counts.values())
-        frequencies = (
-            {temp: count / total for temp, count in counts.items()}
-            if total
-            else {temp: 0.0 for temp in counts}
-        )
-        return counts, frequencies
+        return counts

@@ -8,6 +8,7 @@ import sys
 from returns.result import Success, Failure
 from orjsonl import orjsonl
 from tqdm import tqdm
+import orjson
 from contentfuzz.evaluate import (
     load_gen_results,
     get_correct_tasks,
@@ -33,6 +34,14 @@ def get_skip_cnt(file_path: str) -> int:
     with open(file_path, "rb") as f:
         num_lines = sum(1 for _ in f)
     return num_lines
+
+
+def get_fuzzer_state_path(attack_output_path: str) -> str:
+    """Derive the path for storing serialized fuzzer state."""
+    base, ext = os.path.splitext(attack_output_path)
+    if ext == ".jsonl":
+        return f"{base}.fuzzer_stat.json"
+    return f"{attack_output_path}.fuzzer_stat.json"
 
 
 def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
@@ -112,7 +121,9 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
             sys.exit(1)
         ct = random.sample(ct, k=sample_n)
 
-    for t in tqdm(ct, total=len(ct)):
+    total_tasks_to_fuzz = len(ct)
+
+    for t in tqdm(ct, total=total_tasks_to_fuzz):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task):
             case Success((mutated_text, stance, confidence)):
@@ -127,15 +138,25 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                 err_obj = task | {"error": err}
                 orjsonl.append(attack_output_path, err_obj)
 
-    temp_counts, temp_freq = mutator.get_temperature_stats()
-    if temp_counts:
-        formatted_freq = {temp: round(freq, 4) for temp, freq in temp_freq.items()}
-        logging.info("Temperature sampling counts: %s", temp_counts)
-        logging.info("Temperature sampling frequencies: %s", formatted_freq)
-
     df = load_gen_results(attack_output_path)
     fuzz_metrics = compute_fuzz_metrics(df)
     print_eval_metrics(fuzz_metrics)
+
+    assert attack_output_path is not None
+    fuzzer_state_path = get_fuzzer_state_path(attack_output_path)
+    temp_counts = mutator.get_temperature_stats()
+    fuzzer_stats = {
+        "temperature_scheduling": temp_counts,
+    }
+    with open(fuzzer_state_path, "wb") as state_file:
+        state_file.write(
+            orjson.dumps(
+                fuzzer_stats,
+                option=(
+                    orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS | orjson.OPT_NON_STR_KEYS
+                ),
+            )
+        )
 
 
 if __name__ == "__main__":
