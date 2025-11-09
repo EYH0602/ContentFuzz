@@ -1,4 +1,4 @@
-from typing import Any, Mapping, cast, Literal
+from typing import Any, Mapping, cast
 
 from datasets import load_dataset
 
