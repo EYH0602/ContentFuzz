@@ -23,7 +23,7 @@ from contentfuzz.stance_dataset import (
     StanceDataset,
 )
 from contentfuzz.fuzz import Mutator, Fuzzer
-from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder
+from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder, COLA
 from contentfuzz.utils import get_default_atk_output_path, SEED
 
 
@@ -83,6 +83,8 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
             analyzer = ZeroshotAnalyzer(model=cls_model)
         case "encoder":
             analyzer = Encoder(model=cls_model)
+        case "cola":
+            analyzer = COLA(model=cls_model)
 
     gen_results = load_gen_results(cls_output_path)
 
