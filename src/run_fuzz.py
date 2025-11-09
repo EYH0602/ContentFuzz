@@ -62,7 +62,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     temperature: float | None = None,
     mutate_n: int = 5,
     sample_n: int | None = None,
-    scheduler_name: SchedulerChoice = "priority",
+    schedule: SchedulerChoice = "priority",
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
 
@@ -96,7 +96,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
             analyzer = COLA(model=cls_model)
 
     scheduler: SeedScheduler
-    match scheduler_name:
+    match schedule:
         case "fifo":
             scheduler = FIFOScheduler()
         case "priority":
