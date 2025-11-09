@@ -2,9 +2,9 @@ import argparse
 import logging
 import os
 import random
+from typing import get_args
 
 import pandas as pd
-from typing import get_args
 
 from contentfuzz.cls import (
     StanceAnalyzer,
