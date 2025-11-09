@@ -76,7 +76,7 @@ class PriorityScheduler:
 class RandomScheduler:
     """Random seed scheduler
     randomly selects a seed from the population for fuzzing.
-    All the seed in the population have equal probability to be selected.
+    All the seeds in the population have equal probability to be selected.
     The picked seed is removed from the population.
     """
 
