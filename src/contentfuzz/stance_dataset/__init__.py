@@ -1,14 +1,16 @@
-from .utils import translate_stance, negate_stance
-from .c_stance import load_c_stance, C_STANCE
+from typing import Literal
+from .utils import negate_stance
+from .c_stance import load_c_stance, CSTANCEChoices
+from .sem16 import load_sem16
 from ._base import StanceDataEntry, StanceDataset
 
-Dataset = C_STANCE  # todo: add more datasets
+Dataset = Literal[CSTANCEChoices, "sem16"]  # todo: add more datasets
 
 __all__ = [
-    "translate_stance",
     "negate_stance",
     "load_c_stance",
-    "C_STANCE",
+    "load_sem16",
+    "CSTANCEChoices",
     "Dataset",
     "StanceDataEntry",
     "StanceDataset",

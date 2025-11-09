@@ -13,7 +13,7 @@ from contentfuzz.cls import (
     Encoder,
     Analyzer,
 )
-from contentfuzz.stance_dataset import StanceDataset, load_c_stance, Dataset
+from contentfuzz.stance_dataset import StanceDataset, load_c_stance, Dataset, load_sem16
 from contentfuzz.evaluate import (
     EvalMetrics,
     compute_metrics,
@@ -49,6 +49,8 @@ def main(
     match dataset_name:
         case "c-stance-a" | "c-stance-b":
             dataset = load_c_stance(dataset_name, "test")
+        case "sem16":
+            dataset = load_sem16("test")
 
     if sample_n is not None:
         dataset = random.sample(dataset, sample_n)

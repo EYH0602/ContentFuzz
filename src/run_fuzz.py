@@ -18,6 +18,7 @@ from contentfuzz.evaluate import (
 )
 from contentfuzz.stance_dataset import (
     load_c_stance,
+    load_sem16,
     StanceDataEntry,
     Dataset,
     StanceDataset,
@@ -85,6 +86,8 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     match dataset_name:
         case "c-stance-a" | "c-stance-b":
             dataset = load_c_stance(dataset_name, "test")
+        case "sem16":
+            dataset = load_sem16("test")
 
     analyzer: StanceAnalyzer
     match analyzer_name:
