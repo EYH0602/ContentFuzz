@@ -1,6 +1,7 @@
 import heapq
 import random
-from typing import Protocol, Literal, runtime_checkable
+from itertools import count
+from typing import Protocol, Literal, runtime_checkable, Any
 
 from returns.result import Success, Failure, Result
 from ..stance_dataset import StanceDataEntry
@@ -18,7 +19,7 @@ class SeedScheduler(Protocol):
     Protocol for seed schedulers
     """
 
-    population: list[Seed]
+    population: list[Any]  # may choose how to store seeds internally
 
     def pick(self) -> Result[Seed, FuzzerErr]:
         """Pick the next seed to fuzz"""
@@ -58,19 +59,21 @@ class PriorityScheduler:
     """
 
     def __init__(self) -> None:
-        self.population: list[Seed] = []
+        self.population: list[tuple[float, int, StanceDataEntry]] = []
+        self._counter = count()
 
     def pick(self) -> Result[Seed, FuzzerErr]:
         """Get the seed with the highest priority (lowest confidence)"""
         if not self.population:
             return Failure(FuzzerErr.EMPTY_SEED)
 
-        seed = heapq.heappop(self.population)
-        return Success(seed)
+        confidence, _, stance = heapq.heappop(self.population)
+        return Success((confidence, stance))
 
     def add(self, new_seed: Seed) -> None:
         """Add a new seed and keep the heap ordered by confidence score"""
-        heapq.heappush(self.population, new_seed)
+        confidence, stance = new_seed
+        heapq.heappush(self.population, (confidence, next(self._counter), stance))
 
 
 class RandomScheduler:
