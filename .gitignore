@@ -210,4 +210,4 @@ __marimo__/
 results/
 saved_models/
 saved_models
-fuzz/
+/fuzz/
