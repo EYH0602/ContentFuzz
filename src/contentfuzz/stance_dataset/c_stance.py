@@ -2,28 +2,35 @@ from typing import Any, Mapping, cast, Literal
 
 from datasets import load_dataset
 
-from .utils import translate_stance
+
+from .._types import Stance
 from ._base import SPLITS, StanceDataset, StanceDataEntry
 
 
-C_STANCE = Literal["c-stance-a", "c-stance-b"]
-DATASET_NAME = C_STANCE
+CSTANCEChoices = Literal["c-stance-a", "c-stance-b"]
+
+CHN_TO_EN: dict[str, Stance] = {"支持": "Favor", "反对": "Against", "中立": "Neutral"}
 
 
-def _hf_repo_id(name: C_STANCE) -> str:
+def _hf_repo_id(name: CSTANCEChoices) -> str:
     return f"yfhe/{name.upper()}"
 
 
 def _cast(data_entry) -> StanceDataEntry:
     r = cast(Mapping[str, Any], data_entry)
+    stance = r["Stance"]
+    _stance: Stance = CHN_TO_EN.get(stance, "Neutral")
+    if stance == "Irrelevant":
+        _stance = "Neutral"
+
     return {
-        "stance": translate_stance(r["Stance"]),
+        "stance": _stance,
         "target": r["Target"],
         "text": r["Text"],
     }
 
 
-def load_c_stance(name: C_STANCE, split: SPLITS = "test") -> StanceDataset:
+def load_c_stance(name: CSTANCEChoices, split: SPLITS = "test") -> StanceDataset:
     """Load C-STANCE dataset from Hugging Face and return a normalized dataset.
 
     The returned DataFrame has columns: ["text", "target", "stance"].
