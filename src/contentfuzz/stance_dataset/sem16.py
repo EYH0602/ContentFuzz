@@ -30,5 +30,5 @@ def load_sem16(split: SPLITS = "test") -> StanceDataset:
     """Load SEM16 dataset from Hugging Face and return a normalized dataset.
     We use the version https://huggingface.co/datasets/krishnagarg09/SemEval2016Task6
     """
-    dataset = load_dataset("sem16", split=split)
+    dataset = load_dataset("krishnagarg09/SemEval2016Task6", split=split)
     return StanceDataset([_cast(entry) for entry in dataset])
