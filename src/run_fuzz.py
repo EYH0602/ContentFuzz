@@ -188,6 +188,7 @@ if __name__ == "__main__":
     )
     dataset_choices = get_args(Dataset)
     analyzer_choices = get_args(Analyzer)
+    schedule_choices = get_args(SchedulerChoice)
     parser.add_argument(
         "dataset_name",
         choices=dataset_choices,
@@ -253,6 +254,14 @@ if __name__ == "__main__":
         default=5,
         help="Number of mutations to generate per task.",
     )
+    parser.add_argument(
+        "-s",
+        "--schedule",
+        dest="schedule",
+        choices=schedule_choices,
+        default="priority",
+        help="Seed scheduling strategy.",
+    )
     args = parser.parse_args()
     main(
         dataset_name=args.dataset_name,
@@ -264,4 +273,5 @@ if __name__ == "__main__":
         temperature=args.temperature,
         mutate_n=args.mutate_n,
         sample_n=args.sample_n,
+        schedule=args.schedule,
     )
