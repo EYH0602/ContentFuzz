@@ -12,8 +12,7 @@ Do not extensively use emojis or hashtags unless they were present in the origin
 """
 
 REWRITE = """
-The following post is about the topic: {target}.
-It is currently written in a {stance} tone.
+The current text is {stance} towards the {target}.
 Without changing its meaning, please rewrite the following text:
 ```
 {text}
