@@ -23,6 +23,14 @@ from contentfuzz.stance_dataset import (
     StanceDataset,
 )
 from contentfuzz.fuzz import Mutator, Fuzzer
+from contentfuzz.fuzz.seed_scheduler import (
+    SchedulerChoice,
+    RandomScheduler,
+    PriorityScheduler,
+    FIFOScheduler,
+    PriorityRandomScheduler,
+    SeedScheduler,
+)
 from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder, COLA
 from contentfuzz.utils import get_default_atk_output_path, SEED
 
@@ -54,6 +62,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     temperature: float | None = None,
     mutate_n: int = 5,
     sample_n: int | None = None,
+    scheduler_name: SchedulerChoice = "priority",
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
 
@@ -86,6 +95,17 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         case "cola":
             analyzer = COLA(model=cls_model)
 
+    scheduler: SeedScheduler
+    match scheduler_name:
+        case "fifo":
+            scheduler = FIFOScheduler()
+        case "priority":
+            scheduler = PriorityScheduler()
+        case "random":
+            scheduler = RandomScheduler()
+        case "priority_random":
+            scheduler = PriorityRandomScheduler()
+
     gen_results = load_gen_results(cls_output_path)
 
     assert len(dataset) == len(gen_results), "Dataset and results length mismatch"
@@ -98,7 +118,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     ct = correct_tasks.to_dict("records")
 
     mutator = Mutator(model=fuzzer_model, n=mutate_n, temperature=temperature)
-    fuzzer = Fuzzer(analyzer, mutator)
+    fuzzer = Fuzzer(analyzer, mutator, scheduler)
 
     temp_msg = (
         "+ temperature scheduling"

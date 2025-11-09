@@ -1,6 +1,6 @@
 import heapq
 import random
-from typing import Protocol
+from typing import Protocol, Literal, runtime_checkable
 
 from returns.result import Success, Failure, Result
 from ..stance_dataset import StanceDataEntry
@@ -9,7 +9,10 @@ from .utils import FuzzerErr
 # (confidence, stance)
 Seed = tuple[float, StanceDataEntry]
 
+SchedulerChoice = Literal["fifo", "priority", "random", "priority_random"]
 
+
+@runtime_checkable
 class SeedScheduler(Protocol):
     """
     Protocol for seed schedulers
@@ -36,7 +39,7 @@ class FIFOScheduler:
     def __init__(self) -> None:
         self.population: list[Seed] = []
 
-    def pick(self) -> Result[Seed, str]:
+    def pick(self) -> Result[Seed, FuzzerErr]:
         """Get the first seed in the population queue"""
         if not self.population:
             return Failure(FuzzerErr.EMPTY_SEED)
@@ -57,7 +60,7 @@ class PriorityScheduler:
     def __init__(self) -> None:
         self.population: list[Seed] = []
 
-    def pick(self) -> Result[Seed, str]:
+    def pick(self) -> Result[Seed, FuzzerErr]:
         """Get the seed with the highest priority (lowest confidence)"""
         if not self.population:
             return Failure(FuzzerErr.EMPTY_SEED)
@@ -80,7 +83,7 @@ class RandomScheduler:
     def __init__(self) -> None:
         self.population: list[Seed] = []
 
-    def pick(self) -> Result[Seed, str]:
+    def pick(self) -> Result[Seed, FuzzerErr]:
         """Randomly select a seed from the population"""
         if not self.population:
             return Failure(FuzzerErr.EMPTY_SEED)
@@ -117,7 +120,7 @@ class PriorityRandomScheduler:
         # Normalizing avoids floating point blowups when confidences are tiny.
         return [w / total for w in weights]
 
-    def pick(self) -> Result[Seed, str]:
+    def pick(self) -> Result[Seed, FuzzerErr]:
         """Sample a seed using weighted priority-based randomness"""
         if not self.population:
             return Failure(FuzzerErr.EMPTY_SEED)
