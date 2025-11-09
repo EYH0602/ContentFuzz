@@ -1,4 +1,3 @@
-from ._base import StanceDataEntry
 from .._types import Stance
 
 

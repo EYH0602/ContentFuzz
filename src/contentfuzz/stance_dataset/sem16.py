@@ -16,8 +16,6 @@ def _cast(data_entry) -> StanceDataEntry:
     r = cast(Mapping[str, Any], data_entry)
     stance = r["Stance"]
     _stance = SemEval16Mapping.get(stance, "Neutral")
-    if stance is None:
-        _stance = "Neutral"
 
     return {
         "stance": _stance,
