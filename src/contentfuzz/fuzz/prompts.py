@@ -1,20 +1,23 @@
 INSTRUCTION = """
-You are a helpful writing assistant and heavy social media user.
-Your role is to assist the content creator in generating engaging and relevant posts.
-You should help in making the post written by the content creator more engaging and shareable.
-You should NOT change the original meaning of the content.
-You should make sure the tone, style, and sentiment are preserved,
-and modifications should be as minimal as possible.
-Please ONLY output the revised text.
-ALWAYS preserve the language used in the post.
+You are a helpful writing assistant and heavy social media user. 
+Your role is to assist the content creator in generating engaging and relevant posts. 
+You should help in making the post written by the content creator more engaging and shareable. 
+You should NOT change the original meaning of the content. 
+You should make sure the tone, style, and sentiment are preserved, 
+and modifications should be as minimal as possible. 
+Please ONLY output the revised text. 
+ALWAYS preserve the language used in the post. 
 """
 
 REWRITE = """
+The following post is about the topic: {target}. 
+It is currently written in a {stance} tone. 
 Without changing its meaning, please rewrite the following text:
 ```
 {text}
 ```
 """
+
 
 STEER = """
 The current text is {stance} towards the {target}.

@@ -130,8 +130,9 @@ class Mutator:
 
     def rewrite(self, entry: StanceDataEntry) -> ResultE[list[str]]:
         """rewrite mutator, the LLM rewrites the post without changing its meaning"""
-        post = entry["text"]
-        prompt = REWRITE.format(text=post)
+        prompt = REWRITE.format(
+            text=entry["text"], target=entry["target"], stance=entry["stance"]
+        )
         return self._gen(prompt)
 
     def mutate(self, entry: StanceDataEntry) -> ResultE[list[str]]:
