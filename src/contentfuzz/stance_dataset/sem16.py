@@ -3,6 +3,7 @@ from typing import Any, Mapping, cast
 from datasets import load_dataset
 
 from ._base import SPLITS, StanceDataset, StanceDataEntry
+from .utils import remove_hash_tags
 from .._types import Stance
 
 SemEval16Mapping: dict[str, Stance] = {
@@ -14,13 +15,14 @@ SemEval16Mapping: dict[str, Stance] = {
 
 def _cast(data_entry) -> StanceDataEntry:
     r = cast(Mapping[str, Any], data_entry)
-    stance = r["Stance"]
+    stance = r.get("Stance", "NONE")
     _stance = SemEval16Mapping.get(stance, "Neutral")
 
+    text = r.get("Tweet", "").replace("#SemST", "")
     return {
         "stance": _stance,
-        "target": r["Target"],
-        "text": r["Tweet"],
+        "target": r.get("Target", ""),
+        "text": remove_hash_tags(text),
     }
 
 
