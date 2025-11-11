@@ -11,9 +11,29 @@ Always **keep the content in the same language** as the original post (no transl
 Do not extensively use emojis or hashtags unless they were present in the original text.
 """
 
+INSTRUCTION_CN = """
+你是一个乐于助人的写作助理，同时也是一个活跃的社交媒体用户。
+你的角色是帮助内容创作作者润色他们的帖子，让他们的帖子变得更加有吸引力和传播性。
+请保持帖子本身原意不变的前提下，提高写作和文章流畅度。
+请不要改变作者的原本立场（他们对主题的态度或观点）或帖子的目标主题。
+请务必保留原有的语气，风格和看法保留作者个人表达。
+只进行最小幅度的修改：目标是润色文本，而不是重写。
+输出只提供修改后的文本，不要附加任何解释。
+从始至终保持和原文相同的语言（不要翻译或者转换方言）。
+除非是原文中已经有的表情符号或者表情，否则不要过度使用表情符号或标签。
+"""
+
 REWRITE = """
 The current text is {stance} towards the {target}.
 Without changing its meaning, please rewrite the following text:
+```
+{text}
+```
+"""
+
+REWRITE_CH = """
+当前的文本关于{target}是{stance}的。
+在不改变当前含义的情况下，请重新写以下文本：
 ```
 {text}
 ```
