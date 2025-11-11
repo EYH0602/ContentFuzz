@@ -42,7 +42,7 @@ class Mutator:
 
     def __init__(
         self,
-        model: str = "gpt-4.1-nano",
+        model: str = "gemini-2.5-flash-lite",
         n: int = 5,
         temperature: float | None = None,
     ):
