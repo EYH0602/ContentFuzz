@@ -99,7 +99,7 @@ class Fuzzer:
         return self.scheduler.pick().bind(self.fuzz).bind(self.check_analyzer_behavior)
 
     def runs(
-        self, original_post: StanceDataEntry, n_iters: int = 10
+        self, original_post: StanceDataEntry, n_iters: int = 300
     ) -> Result[tuple[FuzzOutput, int], list[str]]:
         """run multiple iterations of fuzzing, return the first successful seed
         Args:

@@ -64,7 +64,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     mutate_n: int = 5,
     sample_n: int | None = None,
     schedule: SchedulerChoice = "priority",
-    n_iters: int = 10,
+    n_iters: int = 300,
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
 
@@ -272,7 +272,7 @@ if __name__ == "__main__":
         "--n-iters",
         dest="n_iters",
         type=int,
-        default=10,
+        default=300,
         help="Number of iterations to run the fuzzer.",
     )
     args = parser.parse_args()
