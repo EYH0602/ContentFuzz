@@ -105,9 +105,7 @@ def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
     predicted = df["predicted"].astype(str)
     stance = df["stance"].astype(str)
 
-    # Failures include analyzer errors (predicted equals "error", case-insensitive)
-    error_mask = predicted.str.lower().eq("error")
-    success_mask = (~error_mask) & (stance != predicted)
+    success_mask = stance != predicted
 
     attack_succ_rate = success_mask.sum() / len(df)
 
