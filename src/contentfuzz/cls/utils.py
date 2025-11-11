@@ -139,7 +139,7 @@ def _parse_gemini_prob(candidate) -> float | None:
 def classify_w_prob(
     client: genai.Client,
     model: str,
-    system_prompt: str,
+    system_prompt: str | None,
     user_prompt: str,
 ) -> AnalysisOutput:
     """Request a stance classification from Google Gemini with log probabilities."""
