@@ -131,7 +131,6 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
         else f"+ temperature = {temperature}"
     )
     logging.info(f"Fuzzing with {fuzzer_model} {temp_msg}")
-    n_succ = 0
 
     # skip existing results
     skip_count = get_skip_cnt(attack_output_path)
@@ -160,12 +159,10 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
                     "confidence": confidence,
                 }
                 orjsonl.append(attack_output_path, log_obj)
-                n_succ += 1
             case Failure(err):
                 err_msgs = list(map(str, err))
                 err_obj = task | {"error": err_msgs}
                 orjsonl.append(attack_output_path, err_obj)
-                logging.warning("\n".join(err_msgs))
 
     df = load_gen_results(attack_output_path)
     fuzz_metrics = compute_fuzz_metrics(df)

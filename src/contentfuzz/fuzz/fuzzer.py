@@ -97,16 +97,16 @@ class Fuzzer:
 
     def runs(
         self, original_post: StanceDataEntry, n_iters: int = 10
-    ) -> Result[FuzzOutput, list[Exception]]:
+    ) -> Result[FuzzOutput, list[str]]:
         """run multiple iterations of fuzzing, return the first successful seed"""
         # the initial seed is the original post with max confidence
         self.scheduler.add((1.0, original_post))
-        errs: list[Exception] = []
-        for _ in range(n_iters):
+        errs: list[str] = []
+        for i in range(n_iters):
             match self.run():
                 case Success(seed):
                     return Success(seed)
 
                 case Failure(e):
-                    errs.append(e)
+                    errs.append(f"{i}: {str(e)}")
         return Failure(errs)
