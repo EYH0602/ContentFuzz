@@ -9,10 +9,16 @@ R = TypeVar("R")
 
 
 def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
-    """Apply exponential backoff (min=1, max=10) for 3 attempts, type-preserving."""
+    """Apply exponential backoff (min=1, max=10) for 3 attempts.
+    Type-preserving and exception-preserving.
+    """
 
     @wraps(func)
-    @retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(3))
+    @retry(
+        reraise=True,
+        wait=wait_random_exponential(min=1, max=10),
+        stop=stop_after_attempt(3),
+    )
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         return func(*args, **kwargs)
 
@@ -20,7 +26,6 @@ def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
 
 
 SEED = int(os.getenv("SEED", "0"))
-MAX_MUTATE_RETRY = int(os.getenv("MAX_MUTATE_RETRY", "5"))
 
 
 def get_default_cls_output_path(

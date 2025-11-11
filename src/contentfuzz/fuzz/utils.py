@@ -1,6 +1,5 @@
 import logging
 from typing import Iterable
-from enum import StrEnum
 
 from google.genai.types import (
     GenerateContentResponse,
@@ -44,11 +43,3 @@ def get_texts(response: GenerateContentResponse) -> list[str]:
             texts.append(text)
 
     return texts
-
-
-class FuzzerErr(StrEnum):
-    """Error types during fuzzing"""
-
-    NO_VALID_NEW_SEED = "No valid new seed is returned by the Mutator"
-    FAILED_TO_MUTATE = "Failed to create an error triggering seed"
-    EMPTY_SEED = "Seed population is empty"

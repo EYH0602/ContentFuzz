@@ -53,7 +53,7 @@ def get_fuzzer_state_path(attack_output_path: str) -> str:
     return f"{attack_output_path}.fuzzer_stat.json"
 
 
-def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
+def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     dataset_name: Dataset,
     analyzer_name: Analyzer,
     cls_output_path: str,
@@ -64,6 +64,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
     mutate_n: int = 5,
     sample_n: int | None = None,
     schedule: SchedulerChoice = "priority",
+    n_iters: int = 10,
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
 
@@ -75,10 +76,11 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         output_dir = os.path.abspath("fuzz")
         os.makedirs(output_dir, exist_ok=True)
         temp_ext = "" if temperature is None else f"+temp-{str(temperature)}"
+        sched_ext = f"+{schedule}"
         attack_output_path = get_default_atk_output_path(
             output_dir,
             cls_output_path,
-            f"{fuzzer_model}{temp_ext}",
+            f"{fuzzer_model}{temp_ext}{sched_ext}",
         )
 
     random.seed(SEED)
@@ -129,7 +131,6 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         else f"+ temperature = {temperature}"
     )
     logging.info(f"Fuzzing with {fuzzer_model} {temp_msg}")
-    n_succ = 0
 
     # skip existing results
     skip_count = get_skip_cnt(attack_output_path)
@@ -150,7 +151,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
 
     for t in tqdm(ct, total=total_tasks_to_fuzz):
         task: StanceDataEntry = t  # type: ignore
-        match fuzzer.runs(task):
+        match fuzzer.runs(task, n_iters=n_iters):
             case Success((mutated_text, stance, confidence)):
                 log_obj = task | {
                     "new_text": mutated_text,
@@ -158,7 +159,6 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                     "confidence": confidence,
                 }
                 orjsonl.append(attack_output_path, log_obj)
-                n_succ += 1
             case Failure(err):
                 err_obj = task | {"error": err}
                 orjsonl.append(attack_output_path, err_obj)
@@ -265,6 +265,14 @@ if __name__ == "__main__":
         default="priority",
         help="Seed scheduling strategy.",
     )
+    parser.add_argument(
+        "-ni",
+        "--n-iters",
+        dest="n_iters",
+        type=int,
+        default=10,
+        help="Number of iterations to run the fuzzer.",
+    )
     args = parser.parse_args()
     main(
         dataset_name=args.dataset_name,
@@ -277,4 +285,5 @@ if __name__ == "__main__":
         mutate_n=args.mutate_n,
         sample_n=args.sample_n,
         schedule=args.schedule,
+        n_iters=args.n_iters,
     )
