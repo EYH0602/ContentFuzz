@@ -160,8 +160,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
                 }
                 orjsonl.append(attack_output_path, log_obj)
             case Failure(err):
-                err_msgs = list(map(str, err))
-                err_obj = task | {"error": err_msgs}
+                err_obj = task | {"error": err}
                 orjsonl.append(attack_output_path, err_obj)
 
     df = load_gen_results(attack_output_path)
