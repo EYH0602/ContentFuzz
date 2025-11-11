@@ -64,7 +64,7 @@ Constraint: Answer with only the option above that is most accurate and nothing 
 
 
 class COLA:
-    """Zero-shot stance analysis using OpenAI API"""
+    """Zero-shot stance analysis using Google Gemini API"""
 
     def __init__(self, model: str = "gemini-2.5-flash-lite") -> None:
         # self.model, self.client = _get_model_and_client(model)
