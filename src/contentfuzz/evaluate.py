@@ -25,10 +25,21 @@ class EvalMetrics(TypedDict):
     average_incorrect_confidence: float
 
 
+class IterationStats(TypedDict):
+    """Statistics about iterations to success"""
+
+    mean: float
+    median: float
+    std: float
+    minimum: int
+    maximum: int
+
+
 class FuzzMetrics(TypedDict):
     """Evaluation metrics for fuzzing performance"""
 
     attack_succ_rate: float
+    iters: IterationStats | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -97,10 +108,10 @@ def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
     reference stance.
     """
 
-    assert {"stance", "predicted"}.issubset(df.columns)
+    assert {"stance", "predicted", "iteration"}.issubset(df.columns)
 
     if df.empty:
-        return {"attack_succ_rate": 0.0}
+        return {"attack_succ_rate": 0.0, "iters": None}
 
     predicted = df["predicted"].astype(str)
     stance = df["stance"].astype(str)
@@ -109,4 +120,23 @@ def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
 
     attack_succ_rate = success_mask.sum() / len(df)
 
-    return {"attack_succ_rate": round(float(attack_succ_rate), 4)}
+    # iteration counts are zero-indexed; add 1 before computing stats
+    success_iterations = (
+        pd.to_numeric(df.loc[success_mask, "iteration"], errors="coerce") + 1
+    ).dropna()
+
+    iter_stats: IterationStats | None = None
+    if not success_iterations.empty:
+        iterations_int = success_iterations.astype(int)
+        iter_stats = {
+            "mean": round(float(iterations_int.mean()), 4),
+            "median": round(float(iterations_int.median()), 4),
+            "std": round(float(iterations_int.std(ddof=0)), 4),
+            "minimum": int(iterations_int.min()),
+            "maximum": int(iterations_int.max()),
+        }
+
+    return {
+        "attack_succ_rate": round(float(attack_succ_rate), 4),
+        "iters": iter_stats,
+    }
