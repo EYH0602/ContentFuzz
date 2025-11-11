@@ -3,9 +3,8 @@ import random
 from itertools import count
 from typing import Protocol, Literal, runtime_checkable, Any
 
-from returns.result import Success, Failure, Result
+from returns.result import ResultE, safe
 from ..stance_dataset import StanceDataEntry
-from .utils import FuzzerErr
 
 # (confidence, stance)
 Seed = tuple[float, StanceDataEntry]
@@ -21,7 +20,7 @@ class SeedScheduler(Protocol):
 
     population: list[Any]  # may choose how to store seeds internally
 
-    def pick(self) -> Result[Seed, FuzzerErr]:
+    def pick(self) -> ResultE[Seed]:
         """Pick the next seed to fuzz"""
         ...
 
@@ -40,11 +39,10 @@ class FIFOScheduler:
     def __init__(self) -> None:
         self.population: list[Seed] = []
 
-    def pick(self) -> Result[Seed, FuzzerErr]:
+    @safe
+    def pick(self) -> Seed:
         """Get the first seed in the population queue"""
-        if not self.population:
-            return Failure(FuzzerErr.EMPTY_SEED)
-        return Success(self.population.pop(0))
+        return self.population.pop(0)
 
     def add(self, new_seed: Seed) -> None:
         """Add a new seed to the end of the population queue"""
@@ -62,13 +60,11 @@ class PriorityScheduler:
         self.population: list[tuple[float, int, StanceDataEntry]] = []
         self._counter = count()
 
-    def pick(self) -> Result[Seed, FuzzerErr]:
+    @safe
+    def pick(self) -> Seed:
         """Get the seed with the highest priority (lowest confidence)"""
-        if not self.population:
-            return Failure(FuzzerErr.EMPTY_SEED)
-
         confidence, _, stance = heapq.heappop(self.population)
-        return Success((confidence, stance))
+        return confidence, stance
 
     def add(self, new_seed: Seed) -> None:
         """Add a new seed and keep the heap ordered by confidence score"""
@@ -86,12 +82,11 @@ class RandomScheduler:
     def __init__(self) -> None:
         self.population: list[Seed] = []
 
-    def pick(self) -> Result[Seed, FuzzerErr]:
+    @safe
+    def pick(self) -> Seed:
         """Randomly select a seed from the population"""
-        if not self.population:
-            return Failure(FuzzerErr.EMPTY_SEED)
         idx = random.randrange(len(self.population))
-        return Success(self.population.pop(idx))
+        return self.population.pop(idx)
 
     def add(self, new_seed: Seed) -> None:
         """Append a newly discovered seed without reordering"""
@@ -123,15 +118,13 @@ class PriorityRandomScheduler:
         # Normalizing avoids floating point blowups when confidences are tiny.
         return [w / total for w in weights]
 
-    def pick(self) -> Result[Seed, FuzzerErr]:
+    @safe
+    def pick(self) -> Seed:
         """Sample a seed using weighted priority-based randomness"""
-        if not self.population:
-            return Failure(FuzzerErr.EMPTY_SEED)
-
         weights = self._weights()
         seed = random.choices(self.population, weights=weights, k=1)[0]
         self.population.remove(seed)
-        return Success(seed)
+        return seed
 
     def add(self, new_seed: Seed) -> None:
         """Append the seed before recomputing random weights"""
