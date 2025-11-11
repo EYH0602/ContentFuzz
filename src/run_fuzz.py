@@ -75,10 +75,11 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
         output_dir = os.path.abspath("fuzz")
         os.makedirs(output_dir, exist_ok=True)
         temp_ext = "" if temperature is None else f"+temp-{str(temperature)}"
+        sched_ext = f"+{schedule}"
         attack_output_path = get_default_atk_output_path(
             output_dir,
             cls_output_path,
-            f"{fuzzer_model}{temp_ext}",
+            f"{fuzzer_model}{temp_ext}{sched_ext}",
         )
 
     random.seed(SEED)
