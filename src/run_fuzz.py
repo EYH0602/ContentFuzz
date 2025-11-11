@@ -161,8 +161,10 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917
                 orjsonl.append(attack_output_path, log_obj)
                 n_succ += 1
             case Failure(err):
-                err_obj = task | {"error": list(map(str, err))}
+                err_msgs = list(map(str, err))
+                err_obj = task | {"error": err_msgs}
                 orjsonl.append(attack_output_path, err_obj)
+                logging.warning("\n".join(err_msgs))
 
     df = load_gen_results(attack_output_path)
     fuzz_metrics = compute_fuzz_metrics(df)
