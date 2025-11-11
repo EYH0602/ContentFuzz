@@ -3,10 +3,14 @@ Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
 from returns.result import safe, Result, ResultE
-from deprecated import deprecated
+from google.genai.types import (
+    GenerateContentConfig,
+    AutomaticFunctionCallingConfig,
+    ThinkingConfig,
+)
 
 from ._base import AnalysisOutput
-from .utils import _get_model_and_client, classify_w_prob_openai
+from .utils import classify_w_prob, get_vertexai_client
 from ..utils import exp_retry
 
 # assign experts for target
@@ -59,12 +63,13 @@ Constraint: Answer with only the option above that is most accurate and nothing 
 """
 
 
-@deprecated(reason="Performance too low.")
 class COLA:
     """Zero-shot stance analysis using OpenAI API"""
 
-    def __init__(self, model: str = "gpt-4.1-nano"):
-        self.model, self.client = _get_model_and_client(model)
+    def __init__(self, model: str = "gemini-2.5-flash-lite") -> None:
+        # self.model, self.client = _get_model_and_client(model)
+        self.model = model
+        self.client = get_vertexai_client()
 
     @safe
     @exp_retry
@@ -82,21 +87,41 @@ class COLA:
             str | None: The model's response or None if an error occurred.
         """
 
-        response = self.client.chat.completions.create(
+        # NOTE: origional OpenAI version
+        # saved in comments for reference
+        # response = self.client.chat.completions.create(
+        #     model=self.model,
+        #     messages=[
+        #         {"role": "system", "content": f"You are a {role}."},
+        #         {"role": "user", "content": f"{instruction}\n{tweet}"},
+        #     ],
+        #     temperature=0,
+        # )
+        #
+        # choice = response.choices[0]
+        # content: str | None = choice.message.content
+        # if content is None:
+        #     raise ValueError("OpenAI API returned no output")
+
+        # return content
+
+        response = self.client.models.generate_content(
             model=self.model,
-            messages=[
-                {"role": "system", "content": f"You are a {role}."},
-                {"role": "user", "content": f"{instruction}\n{tweet}"},
-            ],
-            temperature=0,
+            contents=f"{instruction}\n{tweet}",
+            config=GenerateContentConfig(
+                temperature=0,
+                system_instruction=f"You are a {role}.",
+                automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+                thinking_config=ThinkingConfig(
+                    thinking_budget=0,  # disable thinking
+                ),
+            ),
         )
 
-        choice = response.choices[0]
-        content: str | None = choice.message.content
-        if content is None:
-            raise ValueError("OpenAI API returned no output")
-
-        return content
+        text = response.text
+        if text is None:
+            raise ValueError("Gemini API returned no output")
+        return text
 
     @safe
     @exp_retry
@@ -109,20 +134,37 @@ class COLA:
             prompt (str): The prompt to send to the model.
 
         Returns:
-            str | None: The model's response or None if an error occurred.
+            str: The model's response or None if an error occurred.
         """
-        response = self.client.chat.completions.create(
+        # NOTE: origional OpenAI version saved in comments for reference
+        # response = self.client.chat.completions.create(
+        #     model=self.model,
+        #     messages=[{"role": "user", "content": prompt}],
+        #     temperature=0,
+        # )
+
+        # choice = response.choices[0]
+        # content: str | None = choice.message.content
+        # if content is None:
+        #     raise ValueError("OpenAI API returned no output")
+
+        # return content
+
+        response = self.client.models.generate_content(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0,
+            contents=prompt,
+            config=GenerateContentConfig(
+                temperature=0,
+                automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+                thinking_config=ThinkingConfig(
+                    thinking_budget=0,  # disable thinking
+                ),
+            ),
         )
-
-        choice = response.choices[0]
-        content: str | None = choice.message.content
-        if content is None:
-            raise ValueError("OpenAI API returned no output")
-
-        return content
+        text = response.text
+        if text is None:
+            raise ValueError("Gemini API returned no output")
+        return text
 
     def linguist_analysis(self, tweet: str) -> ResultE[str]:
         """Let an expert linguist analyze the tweet."""
@@ -141,7 +183,7 @@ class COLA:
             "heavy social media user", TOP_USER_INSTRUCTION, tweet
         )
 
-    def stance_analysis(
+    def stance_analysis(  # pylint: disable=R0913,R0917
         self,
         tweet: str,
         ling_response: str,
@@ -183,7 +225,7 @@ class COLA:
             target=target,
         )
 
-        return classify_w_prob_openai(self.client, self.model, None, prompt)
+        return classify_w_prob(self.client, self.model, None, prompt)
 
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using COLA to analyze the stance of a given text"""
