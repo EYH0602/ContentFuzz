@@ -87,8 +87,7 @@ class COLA:
             str | None: The model's response or None if an error occurred.
         """
 
-        # NOTE: original OpenAI version
-        # saved in comments for reference
+        # NOTE: original OpenAI version,saved in comments for reference
         # response = self.client.chat.completions.create(
         #     model=self.model,
         #     messages=[
@@ -136,7 +135,7 @@ class COLA:
         Returns:
             str: The model's response or None if an error occurred.
         """
-        # NOTE: origional OpenAI version saved in comments for reference
+        # NOTE: original OpenAI version, saved in comments for reference
         # response = self.client.chat.completions.create(
         #     model=self.model,
         #     messages=[{"role": "user", "content": prompt}],
