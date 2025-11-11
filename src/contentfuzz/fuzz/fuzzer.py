@@ -99,16 +99,23 @@ class Fuzzer:
         return self.scheduler.pick().bind(self.fuzz).bind(self.check_analyzer_behavior)
 
     def runs(
-        self, original_post: StanceDataEntry, n_iters: int = 10
-    ) -> Result[FuzzOutput, list[str]]:
-        """run multiple iterations of fuzzing, return the first successful seed"""
+        self, original_post: StanceDataEntry, n_iters: int = 300
+    ) -> Result[tuple[FuzzOutput, int], list[str]]:
+        """run multiple iterations of fuzzing, return the first successful seed
+        Args:
+            original_post: the original input post to be mutated
+            n_iters: number of fuzzing iterations to attempt
+        Returns:
+            Success: (mutated_text, stance, confidence), iteration_count
+            Failure: list of error messages from each iteration
+        """
         # the initial seed is the original post with max confidence
         self.scheduler.add((1.0, original_post))
         errs: list[str] = []
         for i in range(n_iters):
             match self.run():
                 case Success(seed):
-                    return Success(seed)
+                    return Success((seed, i))
 
                 case Failure(e):
                     errs.append(f"{i}: {str(e)}")

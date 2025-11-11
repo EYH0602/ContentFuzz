@@ -64,7 +64,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     mutate_n: int = 5,
     sample_n: int | None = None,
     schedule: SchedulerChoice = "priority",
-    n_iters: int = 10,
+    n_iters: int = 300,
 ) -> None:
     """Main entry point to run fuzzing in ContentFuzz
 
@@ -75,12 +75,13 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     if attack_output_path is None:
         output_dir = os.path.abspath("fuzz")
         os.makedirs(output_dir, exist_ok=True)
-        temp_ext = "" if temperature is None else f"+temp-{str(temperature)}"
+        temp_ext = "+temp-sched" if temperature is None else f"+temp-{str(temperature)}"
         sched_ext = f"+{schedule}"
+        iter_ext = f"+iters-{n_iters}"
         attack_output_path = get_default_atk_output_path(
             output_dir,
             cls_output_path,
-            f"{fuzzer_model}{temp_ext}{sched_ext}",
+            f"{fuzzer_model}{temp_ext}{sched_ext}{iter_ext}",
         )
 
     random.seed(SEED)
@@ -152,11 +153,12 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     for t in tqdm(ct, total=total_tasks_to_fuzz):
         task: StanceDataEntry = t  # type: ignore
         match fuzzer.runs(task, n_iters=n_iters):
-            case Success((mutated_text, stance, confidence)):
+            case Success(((mutated_text, stance, confidence), iter_cnt)):
                 log_obj = task | {
                     "new_text": mutated_text,
                     "predicted": stance,
                     "confidence": confidence,
+                    "iteration": iter_cnt,
                 }
                 orjsonl.append(attack_output_path, log_obj)
             case Failure(err):
@@ -270,7 +272,7 @@ if __name__ == "__main__":
         "--n-iters",
         dest="n_iters",
         type=int,
-        default=10,
+        default=300,
         help="Number of iterations to run the fuzzer.",
     )
     args = parser.parse_args()
