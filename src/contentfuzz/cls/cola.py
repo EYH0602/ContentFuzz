@@ -87,7 +87,7 @@ class COLA:
             str | None: The model's response or None if an error occurred.
         """
 
-        # NOTE: origional OpenAI version
+        # NOTE: original OpenAI version
         # saved in comments for reference
         # response = self.client.chat.completions.create(
         #     model=self.model,
