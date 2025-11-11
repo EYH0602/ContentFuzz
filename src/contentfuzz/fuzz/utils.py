@@ -1,6 +1,5 @@
 import logging
 from typing import Iterable
-from enum import StrEnum
 
 from google.genai.types import (
     GenerateContentResponse,
