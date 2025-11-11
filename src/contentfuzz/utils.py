@@ -26,7 +26,6 @@ def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
 
 
 SEED = int(os.getenv("SEED", "0"))
-MAX_MUTATE_RETRY = int(os.getenv("MAX_MUTATE_RETRY", "5"))
 
 
 def get_default_cls_output_path(

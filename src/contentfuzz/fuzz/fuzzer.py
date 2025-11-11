@@ -6,7 +6,6 @@ from .mutator import Mutator
 from .seed_scheduler import Seed, SeedScheduler
 from ..stance_dataset import StanceDataEntry
 from ..cls import StanceAnalyzer
-from ..utils import MAX_MUTATE_RETRY
 
 
 FuzzOutput = tuple[str, str, float]
