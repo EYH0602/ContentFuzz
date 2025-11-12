@@ -33,16 +33,7 @@ from contentfuzz.fuzz.seed_scheduler import (
     SeedScheduler,
 )
 from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder, COLA
-from contentfuzz.utils import get_default_atk_output_path, SEED
-
-
-def get_skip_cnt(file_path: str) -> int:
-    """count number of a record JSONL file"""
-    if not os.path.isfile(file_path):
-        return 0
-    with open(file_path, "rb") as f:
-        num_lines = sum(1 for _ in f)
-    return num_lines
+from contentfuzz.utils import get_default_atk_output_path, SEED, get_skip_cnt
 
 
 def get_fuzzer_state_path(attack_output_path: str) -> str:

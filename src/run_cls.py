@@ -20,7 +20,7 @@ from contentfuzz.evaluate import (
     print_eval_metrics,
 )
 from contentfuzz.run import run_generation
-from contentfuzz.utils import SEED, get_default_cls_output_path
+from contentfuzz.utils import SEED, get_default_cls_output_path, get_skip_cnt
 
 
 def main(
@@ -52,6 +52,12 @@ def main(
         case "sem16":
             dataset = load_sem16("test")
 
+    skip_count = get_skip_cnt(output_result_path)
+    dataset = dataset[skip_count:]
+    if skip_count > 0:
+        logging.info(
+            f"Found {skip_count} results in {output_result_path}, skipping them..."
+        )
     if sample_n is not None:
         dataset = random.sample(dataset, sample_n)
 
