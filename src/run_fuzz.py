@@ -124,20 +124,20 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     )
     logging.info(f"Fuzzing with {fuzzer_model} {temp_msg}")
 
-    # skip existing results
-    skip_count = get_skip_cnt(attack_output_path)
-    ct = ct[skip_count:]
-    if skip_count > 0:
-        logging.info(
-            f"Found {skip_count} results in {attack_output_path}, skipping them..."
-        )
-
     if sample_n is not None:
         logging.info(f"Sampling {sample_n} from total {len(ct)} fuzzing tasks")
         if sample_n <= 0:
             logging.error(f"sample_n must be positive, got {sample_n}")
             sys.exit(1)
         ct = random.sample(ct, k=sample_n)
+
+    # skip existing results
+    skip_count = get_skip_cnt(attack_output_path)
+    ct = ct[skip_count:100]
+    if skip_count > 0:
+        logging.info(
+            f"Found {skip_count} results in {attack_output_path}, skipping them..."
+        )
 
     total_tasks_to_fuzz = len(ct)
 
