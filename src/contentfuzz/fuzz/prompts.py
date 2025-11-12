@@ -33,7 +33,7 @@ Without changing its meaning, please rewrite the following text:
 
 REWRITE_CH = """
 当前的文本关于{target}是{stance}的。
-在不改变当前含义的情况下，请重新写以下文本：
+在不改变其含义的情况下，请重新写以下文本：
 ```
 {text}
 ```
