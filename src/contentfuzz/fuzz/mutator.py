@@ -15,11 +15,7 @@ from returns.result import safe, ResultE
 from .prompts import INSTRUCTION_EN, INSTRUCTION_ZH, REWRITE_EN, REWRITE_ZH
 from .utils import get_texts
 from ..stance_dataset import StanceDataEntry
-from ..utils import exp_retry, SEED
-
-# ISO 639-1 language code
-# https://en.wikipedia.org/wiki/ISO_639-1
-MutatorLang = Literal["en", "zh"]
+from ..utils import exp_retry, SEED, Language
 
 
 class Mutator:
@@ -50,7 +46,7 @@ class Mutator:
         model: str = "gemini-2.5-flash-lite",
         n: int = 5,
         temperature: float | None = None,
-        lang: MutatorLang = "en",
+        lang: Language = "en",
     ):
         assert 1 <= n <= 8, "n in [1,8] is supported"
 

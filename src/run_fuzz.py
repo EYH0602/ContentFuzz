@@ -22,6 +22,7 @@ from contentfuzz.stance_dataset import (
     StanceDataEntry,
     Dataset,
     StanceDataset,
+    DatasetLangMap,
 )
 from contentfuzz.fuzz import Mutator, Fuzzer
 from contentfuzz.fuzz.seed_scheduler import (
@@ -123,7 +124,12 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     correct_tasks, _ = get_correct_tasks(dataset, gen_results)
     ct = correct_tasks.to_dict("records")
 
-    mutator = Mutator(model=fuzzer_model, n=mutate_n, temperature=temperature)
+    mutator = Mutator(
+        model=fuzzer_model,
+        n=mutate_n,
+        temperature=temperature,
+        lang=DatasetLangMap[dataset_name],
+    )
     fuzzer = Fuzzer(analyzer, mutator, scheduler)
 
     temp_msg = (

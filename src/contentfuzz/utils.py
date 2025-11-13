@@ -1,8 +1,14 @@
 from functools import wraps
-from typing import Callable, ParamSpec, TypeVar
+from typing import Callable, ParamSpec, TypeVar, Literal
 import os
 
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+
+
+# ISO 639-1 language code
+# https://en.wikipedia.org/wiki/ISO_639-1
+Language = Literal["en", "zh"]
+
 
 P = ParamSpec("P")
 R = TypeVar("R")
