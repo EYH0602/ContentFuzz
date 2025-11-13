@@ -1,7 +1,6 @@
 import os
 import random
 from collections import Counter
-from typing import Literal
 
 from google import genai
 from google.genai.types import (
