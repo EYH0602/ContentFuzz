@@ -11,10 +11,10 @@ from google.genai.types import (
 )
 from returns.result import safe, ResultE
 
-from .prompts import INSTRUCTION, REWRITE
+from .prompts import INSTRUCTION_EN, INSTRUCTION_ZH, REWRITE_EN, REWRITE_ZH
 from .utils import get_texts
 from ..stance_dataset import StanceDataEntry
-from ..utils import exp_retry, SEED
+from ..utils import exp_retry, SEED, Language
 
 
 class Mutator:
@@ -45,6 +45,7 @@ class Mutator:
         model: str = "gemini-2.5-flash-lite",
         n: int = 5,
         temperature: float | None = None,
+        lang: Language = "en",
     ):
         assert 1 <= n <= 8, "n in [1,8] is supported"
 
@@ -60,6 +61,10 @@ class Mutator:
             None if temperature is None else float(temperature)
         )
         self._temperature_counts: Counter[float]
+
+        self.lang = lang
+        self.system_instruction = INSTRUCTION_EN if lang == "en" else INSTRUCTION_ZH
+        self.rewrite_prompt = REWRITE_EN if lang == "en" else REWRITE_ZH
 
         # Temperature scheduling state
         if self.use_temp_schedule:
@@ -115,7 +120,7 @@ class Mutator:
             model=self.model,
             contents=prompt,
             config=GenerateContentConfig(
-                system_instruction=INSTRUCTION,
+                system_instruction=self.system_instruction,
                 thinking_config=ThinkingConfig(
                     thinking_budget=0,
                 ),
@@ -130,7 +135,7 @@ class Mutator:
 
     def rewrite(self, entry: StanceDataEntry) -> ResultE[list[str]]:
         """rewrite mutator, the LLM rewrites the post without changing its meaning"""
-        prompt = REWRITE.format(
+        prompt = self.rewrite_prompt.format(
             text=entry["text"], target=entry["target"], stance=entry["stance"]
         )
         return self._gen(prompt)
