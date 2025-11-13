@@ -133,7 +133,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
 
     # skip existing results
     skip_count = get_skip_cnt(attack_output_path)
-    ct = ct[skip_count:100]
+    ct = ct[skip_count:]
     if skip_count > 0:
         logging.info(
             f"Found {skip_count} results in {attack_output_path}, skipping them..."
