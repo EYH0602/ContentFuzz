@@ -10,4 +10,4 @@ uv run src/run_fuzz.py \
     --fuzzer-model gemini-2.5-flash-lite \
     --schedule priority \
     --n-iters 300 \
-    --sample-n 200
+    --sample-n 100
