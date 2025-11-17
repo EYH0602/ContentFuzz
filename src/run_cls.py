@@ -13,7 +13,13 @@ from contentfuzz.cls import (
     Encoder,
     Analyzer,
 )
-from contentfuzz.stance_dataset import StanceDataset, load_c_stance, Dataset, load_sem16
+from contentfuzz.stance_dataset import (
+    StanceDataset,
+    Dataset,
+    load_c_stance,
+    load_sem16,
+    load_vast,
+)
 from contentfuzz.evaluate import (
     EvalMetrics,
     compute_metrics,
@@ -51,6 +57,8 @@ def main(
             dataset = load_c_stance(dataset_name, "test")
         case "sem16":
             dataset = load_sem16("test")
+        case "vast":
+            dataset = load_vast("test")
 
     skip_count = get_skip_cnt(output_result_path)
     dataset = dataset[skip_count:]
