@@ -8,6 +8,7 @@ from google.genai.types import (
     GenerateContentConfig,
     AutomaticFunctionCallingConfig,
     ThinkingConfig,
+    HttpOptions,
 )
 from returns.result import safe
 from structured_logprobs import add_logprobs
@@ -115,6 +116,12 @@ def get_vertexai_client() -> genai.Client:
     client = genai.Client(
         vertexai=True,
         api_key=os.getenv("VERTEXAI_API_KEY"),
+        http_options=HttpOptions(
+            api_version="v1",
+            headers={
+                "X-Vertex-AI-LLM-Request-Type": "shared"
+            },
+        )
     )
     return client
 
