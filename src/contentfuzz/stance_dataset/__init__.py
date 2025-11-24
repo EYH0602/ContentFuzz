@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, TypeGuard, get_args
 from .utils import negate_stance
 from .c_stance import load_c_stance, CSTANCEChoices
 from .sem16 import load_sem16
@@ -14,6 +14,12 @@ DatasetLangMap: dict[Dataset, Language] = {
     "vast": "en",
 }
 
+
+def is_dataset(dataset: str) -> TypeGuard[Dataset]:
+    """check if the dataset string is a valid Dataset"""
+    return dataset in get_args(Dataset)
+
+
 __all__ = [
     "negate_stance",
     "load_c_stance",
@@ -24,4 +30,5 @@ __all__ = [
     "StanceDataEntry",
     "StanceDataset",
     "DatasetLangMap",
+    "is_dataset",
 ]
