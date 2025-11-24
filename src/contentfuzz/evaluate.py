@@ -3,6 +3,8 @@ from typing import TypedDict, Literal
 import pandas as pd
 import orjson
 from sklearn.metrics import f1_score
+import evaluate
+import numpy as np
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
@@ -35,11 +37,20 @@ class IterationStats(TypedDict):
     maximum: int
 
 
+class BERTScore(TypedDict):
+    """BERTScore metrics"""
+
+    precision: float
+    recall: float
+    f1: float
+
+
 class FuzzMetrics(TypedDict):
     """Evaluation metrics for fuzzing performance"""
 
-    attack_succ_rate: float
+    attack_succ_rate: float | None
     iters: IterationStats | None
+    bertscore: BERTScore | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -111,15 +122,15 @@ def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
     assert {"stance", "predicted", "iteration"}.issubset(df.columns)
 
     if df.empty:
-        return {"attack_succ_rate": 0.0, "iters": None}
+        return {"attack_succ_rate": None, "iters": None, "bertscore": None}
 
+    # success rate
     predicted = df["predicted"].astype(str)
     stance = df["stance"].astype(str)
-
     success_mask = stance != predicted
-
     attack_succ_rate = success_mask.sum() / len(df)
 
+    # iterations to success
     # iteration counts are zero-indexed; add 1 before computing stats
     success_iterations = (
         pd.to_numeric(df.loc[success_mask, "iteration"], errors="coerce") + 1
@@ -136,7 +147,24 @@ def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
             "maximum": int(iterations_int.max()),
         }
 
+    # BERTScore
+    bertscore_metric = evaluate.load("bertscore")
+    bertscore_results = bertscore_metric.compute(
+        predictions=df.loc[success_mask, "new_text"].astype(str).tolist(),
+        references=df.loc[success_mask, "text"].astype(str).tolist(),
+        lang="en",
+    )
+
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
         "iters": iter_stats,
+        "bertscore": (
+            {
+                "precision": round(np.mean(bertscore_results["precision"]), 4),
+                "recall": round(np.mean(bertscore_results["recall"]), 4),
+                "f1": round(np.mean(bertscore_results["f1"]), 4),
+            }
+            if bertscore_results
+            else None
+        ),
     }
