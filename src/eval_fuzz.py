@@ -1,11 +1,25 @@
 import argparse
 import random
+import os
 from contentfuzz.evaluate import (
     load_gen_results,
     print_eval_metrics,
     compute_fuzz_metrics,
 )
 from contentfuzz.utils import SEED
+from contentfuzz.stance_dataset import DatasetLangMap, Dataset, is_dataset
+
+
+def parse_dataset_from_filename(filename: str) -> Dataset:
+    """extract dataset name from results filename"""
+    base_name = os.path.basename(filename)
+    file_name = os.path.splitext(base_name)[0]
+    cls_id = file_name.split("=")[0]
+    dataset = cls_id.split("+")[-1]
+    assert is_dataset(
+        dataset
+    ), f"Could not parse valid dataset from filename: {filename}"
+    return dataset
 
 
 def main(results_file: str, sample_n: int | None = None):
@@ -17,7 +31,8 @@ def main(results_file: str, sample_n: int | None = None):
         random.seed(SEED)
         df = df.sample(sample_n, random_state=SEED)
 
-    metrics = compute_fuzz_metrics(df)
+    dataset_name = parse_dataset_from_filename(results_file)
+    metrics = compute_fuzz_metrics(df, lang=DatasetLangMap[dataset_name])
     print_eval_metrics(metrics)
 
 

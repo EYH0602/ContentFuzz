@@ -118,11 +118,12 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     correct_tasks, _ = get_correct_tasks(dataset, gen_results)
     ct = correct_tasks.to_dict("records")
 
+    lang = DatasetLangMap[dataset_name]
     mutator = Mutator(
         model=fuzzer_model,
         n=mutate_n,
         temperature=temperature,
-        lang=DatasetLangMap[dataset_name],
+        lang=lang,
     )
     fuzzer = Fuzzer(analyzer, mutator, scheduler)
 
@@ -166,7 +167,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
                 orjsonl.append(attack_output_path, err_obj)
 
     df = load_gen_results(attack_output_path)
-    fuzz_metrics = compute_fuzz_metrics(df)
+    fuzz_metrics = compute_fuzz_metrics(df, lang=lang)
     print_eval_metrics(fuzz_metrics)
 
     assert attack_output_path is not None

@@ -8,6 +8,7 @@ import numpy as np
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
+from .utils import Language
 
 
 class GenResult(TypedDict):
@@ -110,7 +111,7 @@ def get_correct_tasks(
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
 
-def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
+def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics:
     """
     Compute fuzzing metrics where success is defined as matching stances.
 
@@ -152,7 +153,7 @@ def compute_fuzz_metrics(df: pd.DataFrame) -> FuzzMetrics:
     bertscore_results = bertscore_metric.compute(
         predictions=df.loc[success_mask, "new_text"].astype(str).tolist(),
         references=df.loc[success_mask, "text"].astype(str).tolist(),
-        lang="en",
+        lang=lang,
     )
 
     return {
