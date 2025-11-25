@@ -1,4 +1,5 @@
 from typing import TypedDict, Literal
+import logging
 
 import pandas as pd
 import orjson
@@ -125,19 +126,23 @@ def get_correct_tasks(
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
 
-def compute_perplexity(posts: list[str], alpha: float = 0.05) -> Perplexity | None:
+def compute_perplexity(
+    posts: list[str], alpha: float = 0.05, fast: bool = False
+) -> Perplexity | None:
     """
     Compute the perplexity between original and fuzzed posts.
     """
 
     perplexity_metric = evaluate.load("perplexity", module_type="measurement")
-    model_id = "gpt2"
-    batch_size = 16
+    model_id = "gpt2" if fast else "google/gemma-3-1b-pt"
+    batch_size = 32 if fast else 4
+    logging.info(f"Computing perplexity using {model_id} with batch size {batch_size}")
     fuzzed_results = perplexity_metric.compute(
         data=posts,
         model_id=model_id,
         batch_size=batch_size,
     )
+
     if not fuzzed_results or "perplexities" not in fuzzed_results:
         return None
     # Cast to numpy array so we can use vectorized percentile/masking ops safely
@@ -162,7 +167,9 @@ def compute_perplexity(posts: list[str], alpha: float = 0.05) -> Perplexity | No
     }
 
 
-def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics:
+def compute_fuzz_metrics(
+    df: pd.DataFrame, lang: Language = "en", fast: bool = False
+) -> FuzzMetrics:
     """
     Compute fuzzing metrics where success is defined as matching stances.
 
@@ -215,7 +222,7 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
     )
 
     # Perplexity Ratio
-    ppl = compute_perplexity(fuzzed_correct_posts)
+    ppl = compute_perplexity(fuzzed_correct_posts, fast=fast)
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
