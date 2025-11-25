@@ -5,6 +5,7 @@ import orjson
 from sklearn.metrics import f1_score
 import evaluate
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
@@ -46,12 +47,16 @@ class BERTScore(TypedDict):
     f1: float
 
 
-class PerplexityRatio(TypedDict):
-    """Perplexity ratio metrics"""
+class Perplexity(TypedDict):
+    """Perplexity metrics with distribution stats"""
 
-    original: float
-    fuzzed: float
-    ratio: float
+    mean: float
+    std: float
+    median: float
+    minimum: float
+    maximum: float
+    majority_mean: float | None
+    majority_range: tuple[float, float]
 
 
 class FuzzMetrics(TypedDict):
@@ -60,7 +65,7 @@ class FuzzMetrics(TypedDict):
     attack_succ_rate: float | None
     iters: IterationStats | None
     bertscore: BERTScore | None
-    perplexity: PerplexityRatio | None
+    perplexity: Perplexity | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -120,41 +125,40 @@ def get_correct_tasks(
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
 
-def compute_perplexity_ratio(
-    orig_posts: list[str], fuzzed_posts: list[str]
-) -> PerplexityRatio | None:
+def compute_perplexity(posts: list[str], alpha: float = 0.05) -> Perplexity | None:
     """
-    Compute the perplexity ratio between original and fuzzed posts.
+    Compute the perplexity between original and fuzzed posts.
     """
 
-    perplexity_metric = evaluate.load("perplexity", module_type="metric")
+    perplexity_metric = evaluate.load("perplexity", module_type="measurement")
     model_id = "gpt2"
     batch_size = 16
-    orig_results = perplexity_metric.compute(
-        predictions=orig_posts,
-        model_id=model_id,
-        batch_size=batch_size,
-    )
     fuzzed_results = perplexity_metric.compute(
-        predictions=fuzzed_posts,
+        data=posts,
         model_id=model_id,
         batch_size=batch_size,
     )
-    if fuzzed_results is None or orig_results is None:
+    if not fuzzed_results or "perplexities" not in fuzzed_results:
         return None
+    # Cast to numpy array so we can use vectorized percentile/masking ops safely
+    perplexities = np.asarray(fuzzed_results["perplexities"], dtype=float)
 
-    ratios = [
-        fuzzed / orig
-        for fuzzed, orig in zip(
-            fuzzed_results["perplexities"], orig_results["perplexities"]
-        )
-        if orig > 0
-    ]
-
+    # majority mean, (1 - alpha)% truncated
+    lower = np.percentile(perplexities, alpha / 2 * 100)
+    upper = np.percentile(perplexities, (1 - alpha / 2) * 100)
+    mask = (perplexities >= lower) & (perplexities <= upper)
+    majority_mean = (
+        round(float(np.mean(perplexities[mask])), 4) if np.any(mask) else None
+    )
+    majority_range = (round(float(lower), 4), round(float(upper), 4))
     return {
-        "original": round(float(orig_results["mean_perplexity"]), 4),
-        "fuzzed": round(float(fuzzed_results["mean_perplexity"]), 4),
-        "ratio": round(float(np.mean(ratios)), 4),
+        "mean": round(float(np.mean(perplexities)), 4),
+        "std": round(float(np.std(perplexities)), 4),
+        "median": round(float(np.median(perplexities)), 4),
+        "minimum": round(float(np.min(perplexities)), 4),
+        "maximum": round(float(np.max(perplexities)), 4),
+        "majority_mean": majority_mean,
+        "majority_range": majority_range,
     }
 
 
@@ -211,10 +215,7 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
     )
 
     # Perplexity Ratio
-    pplr = compute_perplexity_ratio(
-        orig_posts=orig_correct_posts,
-        fuzzed_posts=fuzzed_correct_posts,
-    )
+    ppl = compute_perplexity(fuzzed_correct_posts)
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
@@ -228,5 +229,5 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
             if bertscore_results
             else None
         ),
-        "perplexity": pplr,
+        "perplexity": ppl,
     }
