@@ -46,12 +46,21 @@ class BERTScore(TypedDict):
     f1: float
 
 
+class PerplexityRatio(TypedDict):
+    """Perplexity ratio metrics"""
+
+    original: float
+    fuzzed: float
+    ratio: float
+
+
 class FuzzMetrics(TypedDict):
     """Evaluation metrics for fuzzing performance"""
 
     attack_succ_rate: float | None
     iters: IterationStats | None
     bertscore: BERTScore | None
+    perplexity: PerplexityRatio | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -111,6 +120,44 @@ def get_correct_tasks(
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
 
+def compute_perplexity_ratio(
+    orig_posts: list[str], fuzzed_posts: list[str]
+) -> PerplexityRatio | None:
+    """
+    Compute the perplexity ratio between original and fuzzed posts.
+    """
+
+    perplexity_metric = evaluate.load("perplexity", module_type="metric")
+    model_id = "gpt2"
+    batch_size = 16
+    orig_results = perplexity_metric.compute(
+        predictions=orig_posts,
+        model_id=model_id,
+        batch_size=batch_size,
+    )
+    fuzzed_results = perplexity_metric.compute(
+        predictions=fuzzed_posts,
+        model_id=model_id,
+        batch_size=batch_size,
+    )
+    if fuzzed_results is None or orig_results is None:
+        return None
+
+    ratios = [
+        fuzzed / orig
+        for fuzzed, orig in zip(
+            fuzzed_results["perplexities"], orig_results["perplexities"]
+        )
+        if orig > 0
+    ]
+
+    return {
+        "original": round(float(orig_results["mean_perplexity"]), 4),
+        "fuzzed": round(float(fuzzed_results["mean_perplexity"]), 4),
+        "ratio": round(float(np.mean(ratios)), 4),
+    }
+
+
 def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics:
     """
     Compute fuzzing metrics where success is defined as matching stances.
@@ -123,7 +170,12 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
     assert {"stance", "predicted", "iteration"}.issubset(df.columns)
 
     if df.empty:
-        return {"attack_succ_rate": None, "iters": None, "bertscore": None}
+        return {
+            "attack_succ_rate": None,
+            "iters": None,
+            "bertscore": None,
+            "perplexity": None,
+        }
 
     # success rate
     predicted = df["predicted"].astype(str)
@@ -149,11 +201,19 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
         }
 
     # BERTScore
+    orig_correct_posts = df.loc[success_mask, "text"].astype(str).tolist()
+    fuzzed_correct_posts = df.loc[success_mask, "new_text"].astype(str).tolist()
     bertscore_metric = evaluate.load("bertscore")
     bertscore_results = bertscore_metric.compute(
-        predictions=df.loc[success_mask, "new_text"].astype(str).tolist(),
-        references=df.loc[success_mask, "text"].astype(str).tolist(),
+        predictions=fuzzed_correct_posts,
+        references=orig_correct_posts,
         lang=lang,
+    )
+
+    # Perplexity Ratio
+    pplr = compute_perplexity_ratio(
+        orig_posts=orig_correct_posts,
+        fuzzed_posts=fuzzed_correct_posts,
     )
 
     return {
@@ -168,4 +228,5 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
             if bertscore_results
             else None
         ),
+        "perplexity": pplr,
     }
