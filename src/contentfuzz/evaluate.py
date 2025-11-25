@@ -135,7 +135,7 @@ def compute_perplexity(
 
     perplexity_metric = evaluate.load("perplexity", module_type="measurement")
     model_id = "gpt2" if fast else "google/gemma-3-1b-pt"
-    batch_size = 32 if fast else 4
+    batch_size = 32 if fast else 8
     logging.info(f"Computing perplexity using {model_id} with batch size {batch_size}")
     fuzzed_results = perplexity_metric.compute(
         data=posts,
