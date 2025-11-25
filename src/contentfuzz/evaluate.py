@@ -60,13 +60,22 @@ class Perplexity(TypedDict):
     majority_range: tuple[float, float]
 
 
+class PerplexityRatio(TypedDict):
+    """Perplexity ratio metrics"""
+
+    orig: Perplexity
+    fuzz: Perplexity
+    ratio_of_means: float
+    mean_of_ratios: float
+
+
 class FuzzMetrics(TypedDict):
     """Evaluation metrics for fuzzing performance"""
 
     attack_succ_rate: float | None
     iters: IterationStats | None
     bertscore: BERTScore | None
-    perplexity: Perplexity | None
+    perplexity: PerplexityRatio | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -125,10 +134,18 @@ def get_correct_tasks(
     tasks_df = pd.DataFrame(tasks)
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
+def get_majority_mean(data: np.ndarray, alpha: float) -> tuple[float | None, tuple[float, float]] 
+    """Compute the majority mean with (1 - alpha)% truncation."""
+    lower = np.percentile(data, alpha / 2 * 100)
+    upper = np.percentile(data, (1 - alpha / 2) * 100)
+    mask = (data >= lower) & (data <= upper)
+    majority_mean = round(float(np.mean(data[mask])), 4) if np.any(mask) else None
+    majority_range = (round(float(lower), 4), round(float(upper), 4))
+    return majority_mean, majority_range
 
 def compute_perplexity(
     posts: list[str], alpha: float = 0.05, fast: bool = False
-) -> Perplexity | None:
+) -> tuple[Perplexity, np.ndarray] | None:
     """
     Compute the perplexity between original and fuzzed posts.
     """
@@ -149,13 +166,7 @@ def compute_perplexity(
     perplexities = np.asarray(fuzzed_results["perplexities"], dtype=float)
 
     # majority mean, (1 - alpha)% truncated
-    lower = np.percentile(perplexities, alpha / 2 * 100)
-    upper = np.percentile(perplexities, (1 - alpha / 2) * 100)
-    mask = (perplexities >= lower) & (perplexities <= upper)
-    majority_mean = (
-        round(float(np.mean(perplexities[mask])), 4) if np.any(mask) else None
-    )
-    majority_range = (round(float(lower), 4), round(float(upper), 4))
+    majority_mean, majority_range = get_majority_mean(perplexities, alpha)
     return {
         "mean": round(float(np.mean(perplexities)), 4),
         "std": round(float(np.std(perplexities)), 4),
@@ -164,6 +175,59 @@ def compute_perplexity(
         "maximum": round(float(np.max(perplexities)), 4),
         "majority_mean": majority_mean,
         "majority_range": majority_range,
+    }, perplexities
+
+
+def compute_perplexity_ratio(
+    orig_posts: list[str],
+    fuzzed_posts: list[str],
+    alpha: float = 0.05,
+    fast: bool = False,
+) ->  PerplexityRatio | None:
+    """
+    Compute the perplexity ratio between original and fuzzed posts.
+    """
+
+    orig_ppl_results = compute_perplexity(
+        orig_posts,
+        alpha=alpha,
+        fast=fast,
+    )
+    fuzzed_ppl_results = compute_perplexity(
+        fuzzed_posts,
+        alpha=alpha,
+        fast=fast,
+    )
+
+    if not orig_ppl_results or not fuzzed_ppl_results:
+        return None
+
+    orig_ppl, orig_perplexities = orig_ppl_results
+    fuzzed_ppl, fuzzed_perplexities = fuzzed_ppl_results
+
+    # ratio of means
+    # if there is majority mean, use that
+    if (
+        orig_ppl["majority_mean"] is not None
+        and fuzzed_ppl["majority_mean"] is not None
+    ):
+        ratio_of_means = round(
+            float(fuzzed_ppl["majority_mean"] / orig_ppl["majority_mean"]), 4
+        )
+    else:
+        ratio_of_means = round(float(fuzzed_ppl["mean"] / orig_ppl["mean"]), 4)
+
+    # mean of ratios
+    ratios = fuzzed_perplexities / orig_perplexities
+    # take majority mean of ratios with alpha trimming
+    mean_of_ratios, _ = get_majority_mean(ratios, alpha)
+    return {
+        "orig": orig_ppl,
+        "fuzz": fuzzed_ppl,
+        "ratio_of_means": ratio_of_means,
+        "mean_of_ratios": (
+            mean_of_ratios if mean_of_ratios else round(float(np.mean(ratios)), 4)
+        ),
     }
 
 
@@ -222,7 +286,12 @@ def compute_fuzz_metrics(
     )
 
     # Perplexity Ratio
-    ppl = compute_perplexity(fuzzed_correct_posts, fast=fast)
+    ppl = compute_perplexity_ratio(
+        orig_correct_posts,
+        fuzzed_correct_posts,
+        fast=fast,
+        alpha=0.05,
+    )
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
