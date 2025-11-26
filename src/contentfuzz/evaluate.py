@@ -1,4 +1,5 @@
 from typing import TypedDict, Literal
+import logging
 
 import pandas as pd
 import orjson
@@ -46,12 +47,34 @@ class BERTScore(TypedDict):
     f1: float
 
 
+class Perplexity(TypedDict):
+    """Perplexity metrics with distribution stats"""
+
+    mean: float
+    std: float
+    median: float
+    minimum: float
+    maximum: float
+    majority_mean: float | None
+    majority_range: tuple[float, float]
+
+
+class PerplexityRatio(TypedDict):
+    """Perplexity ratio metrics"""
+
+    orig: Perplexity
+    fuzz: Perplexity
+    ratio_of_means: float
+    mean_of_ratios: float
+
+
 class FuzzMetrics(TypedDict):
     """Evaluation metrics for fuzzing performance"""
 
     attack_succ_rate: float | None
     iters: IterationStats | None
     bertscore: BERTScore | None
+    perplexity: PerplexityRatio | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -111,7 +134,113 @@ def get_correct_tasks(
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
 
-def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics:
+def get_majority_mean(
+    data: np.ndarray, alpha: float
+) -> tuple[float | None, tuple[float, float]]:
+    """Compute the majority mean with (1 - alpha)% truncation.
+    Returns:
+    - majority_mean: mean of data within the (1 - alpha)% range
+    - majority_range: (lower_bound, upper_bound) of the (1 - alpha)% range
+    """
+    lower = np.percentile(data, alpha / 2 * 100)
+    upper = np.percentile(data, (1 - alpha / 2) * 100)
+    mask = (data >= lower) & (data <= upper)
+    majority_mean = round(float(np.mean(data[mask])), 4) if np.any(mask) else None
+    majority_range = (round(float(lower), 4), round(float(upper), 4))
+    return majority_mean, majority_range
+
+
+def compute_perplexity(
+    posts: list[str], alpha: float = 0.05, fast: bool = False
+) -> tuple[Perplexity, np.ndarray] | None:
+    """
+    Compute the perplexity between original and fuzzed posts.
+    """
+
+    perplexity_metric = evaluate.load("perplexity", module_type="measurement")
+    model_id = "gpt2" if fast else "google/gemma-3-1b-pt"
+    batch_size = 32 if fast else 8
+    logging.info(f"Computing perplexity using {model_id} with batch size {batch_size}")
+    fuzzed_results = perplexity_metric.compute(
+        data=posts,
+        model_id=model_id,
+        batch_size=batch_size,
+    )
+
+    if not fuzzed_results or "perplexities" not in fuzzed_results:
+        return None
+    # Cast to numpy array so we can use vectorized percentile/masking ops safely
+    perplexities = np.asarray(fuzzed_results["perplexities"], dtype=float)
+
+    # majority mean, (1 - alpha)% truncated
+    majority_mean, majority_range = get_majority_mean(perplexities, alpha)
+    return {
+        "mean": round(float(np.mean(perplexities)), 4),
+        "std": round(float(np.std(perplexities)), 4),
+        "median": round(float(np.median(perplexities)), 4),
+        "minimum": round(float(np.min(perplexities)), 4),
+        "maximum": round(float(np.max(perplexities)), 4),
+        "majority_mean": majority_mean,
+        "majority_range": majority_range,
+    }, perplexities
+
+
+def compute_perplexity_ratio(
+    orig_posts: list[str],
+    fuzzed_posts: list[str],
+    alpha: float = 0.05,
+    fast: bool = False,
+) -> PerplexityRatio | None:
+    """
+    Compute the perplexity ratio between original and fuzzed posts.
+    """
+
+    orig_ppl_results = compute_perplexity(
+        orig_posts,
+        alpha=alpha,
+        fast=fast,
+    )
+    fuzzed_ppl_results = compute_perplexity(
+        fuzzed_posts,
+        alpha=alpha,
+        fast=fast,
+    )
+
+    if not orig_ppl_results or not fuzzed_ppl_results:
+        return None
+
+    orig_ppl, orig_perplexities = orig_ppl_results
+    fuzzed_ppl, fuzzed_perplexities = fuzzed_ppl_results
+
+    # ratio of means
+    # if there is majority mean, use that
+    if (
+        orig_ppl["majority_mean"] is not None
+        and fuzzed_ppl["majority_mean"] is not None
+    ):
+        ratio_of_means = round(
+            float(fuzzed_ppl["majority_mean"] / orig_ppl["majority_mean"]), 4
+        )
+    else:
+        ratio_of_means = round(float(fuzzed_ppl["mean"] / orig_ppl["mean"]), 4)
+
+    # mean of ratios
+    ratios = fuzzed_perplexities / orig_perplexities
+    # take majority mean of ratios with alpha trimming
+    mean_of_ratios, _ = get_majority_mean(ratios, alpha)
+    return {
+        "orig": orig_ppl,
+        "fuzz": fuzzed_ppl,
+        "ratio_of_means": ratio_of_means,
+        "mean_of_ratios": (
+            mean_of_ratios if mean_of_ratios else round(float(np.mean(ratios)), 4)
+        ),
+    }
+
+
+def compute_fuzz_metrics(
+    df: pd.DataFrame, lang: Language = "en", fast: bool = False
+) -> FuzzMetrics:
     """
     Compute fuzzing metrics where success is defined as matching stances.
 
@@ -123,7 +252,12 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
     assert {"stance", "predicted", "iteration"}.issubset(df.columns)
 
     if df.empty:
-        return {"attack_succ_rate": None, "iters": None, "bertscore": None}
+        return {
+            "attack_succ_rate": None,
+            "iters": None,
+            "bertscore": None,
+            "perplexity": None,
+        }
 
     # success rate
     predicted = df["predicted"].astype(str)
@@ -149,11 +283,21 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
         }
 
     # BERTScore
+    orig_correct_posts = df.loc[success_mask, "text"].astype(str).tolist()
+    fuzzed_correct_posts = df.loc[success_mask, "new_text"].astype(str).tolist()
     bertscore_metric = evaluate.load("bertscore")
     bertscore_results = bertscore_metric.compute(
-        predictions=df.loc[success_mask, "new_text"].astype(str).tolist(),
-        references=df.loc[success_mask, "text"].astype(str).tolist(),
+        predictions=fuzzed_correct_posts,
+        references=orig_correct_posts,
         lang=lang,
+    )
+
+    # Perplexity Ratio
+    ppl = compute_perplexity_ratio(
+        orig_correct_posts,
+        fuzzed_correct_posts,
+        fast=fast,
+        alpha=0.05,
     )
 
     return {
@@ -168,4 +312,5 @@ def compute_fuzz_metrics(df: pd.DataFrame, lang: Language = "en") -> FuzzMetrics
             if bertscore_results
             else None
         ),
+        "perplexity": ppl,
     }

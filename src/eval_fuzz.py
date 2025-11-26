@@ -22,7 +22,7 @@ def parse_dataset_from_filename(filename: str) -> Dataset:
     return dataset
 
 
-def main(results_file: str, sample_n: int | None = None):
+def main(results_file: str, sample_n: int | None = None, fast: bool = False) -> None:
     """run evaluation on the saved JSONL generation results file"""
 
     df = load_gen_results(results_file)
@@ -32,7 +32,7 @@ def main(results_file: str, sample_n: int | None = None):
         df = df.sample(sample_n, random_state=SEED)
 
     dataset_name = parse_dataset_from_filename(results_file)
-    metrics = compute_fuzz_metrics(df, lang=DatasetLangMap[dataset_name])
+    metrics = compute_fuzz_metrics(df, lang=DatasetLangMap[dataset_name], fast=fast)
     print_eval_metrics(metrics)
 
 
@@ -50,5 +50,10 @@ if __name__ == "__main__":
         type=int,
         help="Optional number of dataset rows to sample before running.",
     )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Use fast mode for evaluation.",
+    )
     args = parser.parse_args()
-    main(results_file=args.results_file, sample_n=args.sample_n)
+    main(results_file=args.results_file, sample_n=args.sample_n, fast=args.fast)
