@@ -240,15 +240,29 @@ def compute_perplexity_ratio(
     }
 
 
-def compute_mauve(orig_posts: list[str], fuzz_posts: list[str]) -> float | None:
+def compute_mauve(
+    orig_posts: list[str],
+    fuzz_posts: list[str],
+    lang: Language = "en",
+) -> float | None:
     """compute mauve score"""
+
+    model_id: str
+    match lang:
+        case "en":
+            model_id = "google-bert/bert-base-uncased"
+        case "zh":
+            model_id = "hfl/chinese-bert-wwm"
+    batch_size = 32
+    logging.info(f"Computing mauve using {model_id} with batch size {batch_size}")
     out = mauve.compute_mauve(
         p_text=orig_posts,
         q_text=fuzz_posts,
         mauve_scaling_factor=1,
-        batch_size=64,
+        batch_size=batch_size,
+        max_text_length=512,  # bert model max seq length
         device_id=0,
-        max_text_length=2048,
+        featurize_model_name=model_id,
     )
     return round(float(out.mauve), 4)
 
@@ -318,7 +332,7 @@ def compute_fuzz_metrics(
     ppl = None
 
     # Mauve
-    mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts)
+    mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts, lang=lang)
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
