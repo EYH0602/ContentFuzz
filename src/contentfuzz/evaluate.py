@@ -134,8 +134,12 @@ def get_correct_tasks(
     tasks_df = pd.DataFrame(tasks)
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
-def get_majority_mean(data: np.ndarray, alpha: float) -> tuple[float | None, tuple[float, float]] 
-    """Compute the majority mean with (1 - alpha)% truncation."""
+def get_majority_mean(data: np.ndarray, alpha: float) -> tuple[float | None, tuple[float, float]]: 
+    """Compute the majority mean with (1 - alpha)% truncation.
+    Returns:
+    - majority_mean: mean of data within the (1 - alpha)% range
+    - majority_range: (lower_bound, upper_bound) of the (1 - alpha)% range
+    """
     lower = np.percentile(data, alpha / 2 * 100)
     upper = np.percentile(data, (1 - alpha / 2) * 100)
     mask = (data >= lower) & (data <= upper)
