@@ -6,6 +6,7 @@ import orjson
 from sklearn.metrics import f1_score
 import evaluate
 import numpy as np
+import mauve
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
@@ -75,6 +76,7 @@ class FuzzMetrics(TypedDict):
     iters: IterationStats | None
     bertscore: BERTScore | None
     perplexity: PerplexityRatio | None
+    mauve: float | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -238,6 +240,19 @@ def compute_perplexity_ratio(
     }
 
 
+def compute_mauve(orig_posts: list[str], fuzz_posts: list[str]) -> float | None:
+    """compute mauve score"""
+    out = mauve.compute_mauve(
+        p_text=orig_posts,
+        q_text=fuzz_posts,
+        mauve_scaling_factor=1,
+        batch_size=64,
+        device_id=0,
+        max_text_length=2048,
+    )
+    return round(float(out.mauve), 4)
+
+
 def compute_fuzz_metrics(
     df: pd.DataFrame, lang: Language = "en", fast: bool = False
 ) -> FuzzMetrics:
@@ -257,6 +272,7 @@ def compute_fuzz_metrics(
             "iters": None,
             "bertscore": None,
             "perplexity": None,
+            "mauve": None,
         }
 
     # success rate
@@ -299,6 +315,10 @@ def compute_fuzz_metrics(
         fast=fast,
         alpha=0.05,
     )
+    ppl = None
+
+    # Mauve
+    mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts)
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
@@ -313,4 +333,5 @@ def compute_fuzz_metrics(
             else None
         ),
         "perplexity": ppl,
+        "mauve": mauve_score,
     }
