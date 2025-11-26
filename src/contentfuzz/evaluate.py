@@ -6,7 +6,6 @@ import orjson
 from sklearn.metrics import f1_score
 import evaluate
 import numpy as np
-import matplotlib.pyplot as plt
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
@@ -134,7 +133,10 @@ def get_correct_tasks(
     tasks_df = pd.DataFrame(tasks)
     return tasks_df.iloc[correct_indices], results.iloc[correct_indices]
 
-def get_majority_mean(data: np.ndarray, alpha: float) -> tuple[float | None, tuple[float, float]]: 
+
+def get_majority_mean(
+    data: np.ndarray, alpha: float
+) -> tuple[float | None, tuple[float, float]]:
     """Compute the majority mean with (1 - alpha)% truncation.
     Returns:
     - majority_mean: mean of data within the (1 - alpha)% range
@@ -146,6 +148,7 @@ def get_majority_mean(data: np.ndarray, alpha: float) -> tuple[float | None, tup
     majority_mean = round(float(np.mean(data[mask])), 4) if np.any(mask) else None
     majority_range = (round(float(lower), 4), round(float(upper), 4))
     return majority_mean, majority_range
+
 
 def compute_perplexity(
     posts: list[str], alpha: float = 0.05, fast: bool = False
@@ -187,7 +190,7 @@ def compute_perplexity_ratio(
     fuzzed_posts: list[str],
     alpha: float = 0.05,
     fast: bool = False,
-) ->  PerplexityRatio | None:
+) -> PerplexityRatio | None:
     """
     Compute the perplexity ratio between original and fuzzed posts.
     """
