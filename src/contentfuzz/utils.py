@@ -39,7 +39,7 @@ def get_default_cls_output_path(
 ) -> str:
     """construct default classification output path"""
     return (
-        f"{output_dir}/{analyzer_name}+{model.replace("/", "--")}+{dataset_name}.jsonl"
+        f"{output_dir}/{analyzer_name}+{model.replace('/', '--')}+{dataset_name}.jsonl"
     )
 
 
