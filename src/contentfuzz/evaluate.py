@@ -265,7 +265,7 @@ def compute_mauve(
             device_id=0,
             featurize_model_name=model_id,
         )
-    except Exception as e:
+    except Exception as e:  # pylint: disable=W0718
         logging.error(f"Error computing mauve: {e}")
         return None
 
