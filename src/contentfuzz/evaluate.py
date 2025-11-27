@@ -329,7 +329,6 @@ def compute_fuzz_metrics(
         fast=fast,
         alpha=0.05,
     )
-    ppl = None
 
     # Mauve
     mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts, lang=lang)
