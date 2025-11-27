@@ -32,7 +32,14 @@ def main(results_file: str, sample_n: int | None = None, fast: bool = False) -> 
         df = df.sample(sample_n, random_state=SEED)
 
     dataset_name = parse_dataset_from_filename(results_file)
-    metrics = compute_fuzz_metrics(df, lang=DatasetLangMap[dataset_name], fast=fast)
+    metrics = compute_fuzz_metrics(
+        df,
+        lang=DatasetLangMap[dataset_name],
+        fast=fast,
+        include_bertscore=True,
+        include_perplexity=True,
+        include_mauve=True,
+    )
     print_eval_metrics(metrics)
 
 

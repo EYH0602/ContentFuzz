@@ -272,8 +272,36 @@ def compute_mauve(
     return round(float(out.mauve), 4)
 
 
+def compute_bertscore(
+    orig_posts: list[str],
+    fuzzed_posts: list[str],
+    lang: Language = "en",
+) -> BERTScore | None:
+    """compute bertscore between original and fuzzed posts"""
+
+    bertscore_metric = evaluate.load("bertscore")
+    bertscore_results = bertscore_metric.compute(
+        predictions=fuzzed_posts,
+        references=orig_posts,
+        lang=lang,
+    )
+    if not bertscore_results:
+        return None
+
+    return {
+        "precision": round(float(np.mean(bertscore_results["precision"])), 4),
+        "recall": round(float(np.mean(bertscore_results["recall"])), 4),
+        "f1": round(float(np.mean(bertscore_results["f1"])), 4),
+    }
+
+
 def compute_fuzz_metrics(
-    df: pd.DataFrame, lang: Language = "en", fast: bool = False
+    df: pd.DataFrame,
+    lang: Language = "en",
+    fast: bool = False,
+    include_bertscore: bool = False,
+    include_perplexity: bool = False,
+    include_mauve: bool = False,
 ) -> FuzzMetrics:
     """
     Compute fuzzing metrics where success is defined as matching stances.
@@ -317,39 +345,36 @@ def compute_fuzz_metrics(
             "maximum": int(iterations_int.max()),
         }
 
-    # BERTScore
     orig_correct_posts = df.loc[success_mask, "text"].astype(str).tolist()
     fuzzed_correct_posts = df.loc[success_mask, "new_text"].astype(str).tolist()
-    bertscore_metric = evaluate.load("bertscore")
-    bertscore_results = bertscore_metric.compute(
-        predictions=fuzzed_correct_posts,
-        references=orig_correct_posts,
-        lang=lang,
-    )
 
+    # BERTScore
+    bertscore: BERTScore | None = None
+    if include_bertscore:
+        bertscore = compute_bertscore(
+            orig_correct_posts,
+            fuzzed_correct_posts,
+            lang=lang,
+        )
     # Perplexity Ratio
-    ppl = compute_perplexity_ratio(
-        orig_correct_posts,
-        fuzzed_correct_posts,
-        fast=fast,
-        alpha=0.05,
-    )
+    ppl = None
+    if include_perplexity:
+        ppl = compute_perplexity_ratio(
+            orig_correct_posts,
+            fuzzed_correct_posts,
+            fast=fast,
+            alpha=0.05,
+        )
 
     # Mauve
-    mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts, lang=lang)
+    mauve_score = None
+    if include_mauve:
+        mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts, lang=lang)
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
         "iters": iter_stats,
-        "bertscore": (
-            {
-                "precision": round(np.mean(bertscore_results["precision"]), 4),
-                "recall": round(np.mean(bertscore_results["recall"]), 4),
-                "f1": round(np.mean(bertscore_results["f1"]), 4),
-            }
-            if bertscore_results
-            else None
-        ),
+        "bertscore": bertscore,
         "perplexity": ppl,
         "mauve": mauve_score,
     }
