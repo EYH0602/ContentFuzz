@@ -255,15 +255,20 @@ def compute_mauve(
             model_id = "hfl/chinese-bert-wwm"
     batch_size = 32
     logging.info(f"Computing mauve using {model_id} with batch size {batch_size}")
-    out = mauve.compute_mauve(
-        p_text=orig_posts,
-        q_text=fuzz_posts,
-        mauve_scaling_factor=1,
-        batch_size=batch_size,
-        max_text_length=512,  # bert model max seq length
-        device_id=0,
-        featurize_model_name=model_id,
-    )
+    try:
+        out = mauve.compute_mauve(
+            p_text=orig_posts,
+            q_text=fuzz_posts,
+            mauve_scaling_factor=1,
+            batch_size=batch_size,
+            max_text_length=512,  # bert model max seq length
+            device_id=0,
+            featurize_model_name=model_id,
+        )
+    except Exception as e:
+        logging.error(f"Error computing mauve: {e}")
+        return None
+
     return round(float(out.mauve), 4)
 
 
