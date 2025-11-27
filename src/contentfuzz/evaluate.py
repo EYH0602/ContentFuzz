@@ -6,6 +6,7 @@ import orjson
 from sklearn.metrics import f1_score
 import evaluate
 import numpy as np
+import mauve
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
@@ -75,6 +76,7 @@ class FuzzMetrics(TypedDict):
     iters: IterationStats | None
     bertscore: BERTScore | None
     perplexity: PerplexityRatio | None
+    mauve: float | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -238,8 +240,68 @@ def compute_perplexity_ratio(
     }
 
 
+def compute_mauve(
+    orig_posts: list[str],
+    fuzz_posts: list[str],
+    lang: Language = "en",
+) -> float | None:
+    """compute mauve score"""
+
+    model_id: str
+    match lang:
+        case "en":
+            model_id = "google-bert/bert-base-uncased"
+        case "zh":
+            model_id = "hfl/chinese-bert-wwm"
+    batch_size = 32
+    logging.info(f"Computing mauve using {model_id} with batch size {batch_size}")
+    try:
+        out = mauve.compute_mauve(
+            p_text=orig_posts,
+            q_text=fuzz_posts,
+            mauve_scaling_factor=1,
+            batch_size=batch_size,
+            max_text_length=512,  # bert model max seq length
+            device_id=0,
+            featurize_model_name=model_id,
+        )
+    except Exception as e:  # pylint: disable=W0718
+        logging.error(f"Error computing mauve: {e}")
+        return None
+
+    return round(float(out.mauve), 4)
+
+
+def compute_bertscore(
+    orig_posts: list[str],
+    fuzzed_posts: list[str],
+    lang: Language = "en",
+) -> BERTScore | None:
+    """compute bertscore between original and fuzzed posts"""
+
+    bertscore_metric = evaluate.load("bertscore")
+    bertscore_results = bertscore_metric.compute(
+        predictions=fuzzed_posts,
+        references=orig_posts,
+        lang=lang,
+    )
+    if not bertscore_results:
+        return None
+
+    return {
+        "precision": round(float(np.mean(bertscore_results["precision"])), 4),
+        "recall": round(float(np.mean(bertscore_results["recall"])), 4),
+        "f1": round(float(np.mean(bertscore_results["f1"])), 4),
+    }
+
+
 def compute_fuzz_metrics(
-    df: pd.DataFrame, lang: Language = "en", fast: bool = False
+    df: pd.DataFrame,
+    lang: Language = "en",
+    fast: bool = False,
+    include_bertscore: bool = False,
+    include_perplexity: bool = False,
+    include_mauve: bool = False,
 ) -> FuzzMetrics:
     """
     Compute fuzzing metrics where success is defined as matching stances.
@@ -257,6 +319,7 @@ def compute_fuzz_metrics(
             "iters": None,
             "bertscore": None,
             "perplexity": None,
+            "mauve": None,
         }
 
     # success rate
@@ -282,35 +345,36 @@ def compute_fuzz_metrics(
             "maximum": int(iterations_int.max()),
         }
 
-    # BERTScore
     orig_correct_posts = df.loc[success_mask, "text"].astype(str).tolist()
     fuzzed_correct_posts = df.loc[success_mask, "new_text"].astype(str).tolist()
-    bertscore_metric = evaluate.load("bertscore")
-    bertscore_results = bertscore_metric.compute(
-        predictions=fuzzed_correct_posts,
-        references=orig_correct_posts,
-        lang=lang,
-    )
 
+    # BERTScore
+    bertscore: BERTScore | None = None
+    if include_bertscore:
+        bertscore = compute_bertscore(
+            orig_correct_posts,
+            fuzzed_correct_posts,
+            lang=lang,
+        )
     # Perplexity Ratio
-    ppl = compute_perplexity_ratio(
-        orig_correct_posts,
-        fuzzed_correct_posts,
-        fast=fast,
-        alpha=0.05,
-    )
+    ppl = None
+    if include_perplexity:
+        ppl = compute_perplexity_ratio(
+            orig_correct_posts,
+            fuzzed_correct_posts,
+            fast=fast,
+            alpha=0.05,
+        )
+
+    # Mauve
+    mauve_score = None
+    if include_mauve:
+        mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts, lang=lang)
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
         "iters": iter_stats,
-        "bertscore": (
-            {
-                "precision": round(np.mean(bertscore_results["precision"]), 4),
-                "recall": round(np.mean(bertscore_results["recall"]), 4),
-                "f1": round(np.mean(bertscore_results["f1"]), 4),
-            }
-            if bertscore_results
-            else None
-        ),
+        "bertscore": bertscore,
         "perplexity": ppl,
+        "mauve": mauve_score,
     }
