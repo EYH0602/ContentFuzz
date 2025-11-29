@@ -114,6 +114,7 @@ class Fuzzer:
             Failure: list of error messages from each iteration
         """
         # the initial seed is the original post with max confidence
+        self.scheduler.population.clear() # clear existing population
         self.scheduler.add((1.0, original_post))
         errs: list[str] = []
         for i in range(n_iters):
