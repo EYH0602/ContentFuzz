@@ -55,6 +55,7 @@ if __name__ == "__main__":
         "--sample-n",
         dest="sample_n",
         type=int,
+        default=None,
         help="Optional number of dataset rows to sample before running.",
     )
     parser.add_argument(

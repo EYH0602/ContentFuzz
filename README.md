@@ -45,3 +45,21 @@ To evaluate the analysis results:
 ```sh
 uv run src/eval_cls.py results/zero-shot+gpt-4.1+c-stance-a.jsonl
 ```
+
+### Content Fuzzing
+
+```sh
+uv run src/run_fuzz.py c-stance-a zeroshot
+```
+
+We provide all of our experiment scripts in `experiments/`.
+You can run them directly, or modify them to run your own experiments.
+
+To evaluate the fuzzing results:
+
+```sh
+uv run src/eval_fuzz.py fuzz/encoder+saved_models--FacebookAI--roberta-base+vast+vast=gemini-2.5-flash-lite+temp-sched+priority+iters-300.jsonl
+```
+
+If you encounter CUDA out-of-memory errors,
+please adjust the batch sizes in `src/contentfuzz/evaluate.py` accordingly.
