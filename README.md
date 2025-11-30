@@ -52,7 +52,7 @@ uv run src/eval_cls.py results/zero-shot+gpt-4.1+c-stance-a.jsonl
 uv run src/run_fuzz.py c-stance-a zeroshot
 ```
 
-We provide all of our experiment script in `experiments/`.
+We provide all of our experiment scripts in `experiments/`.
 You can run them directly, or modify them to run your own experiments.
 
 To evaluate the fuzzing results:
