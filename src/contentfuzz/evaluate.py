@@ -295,7 +295,7 @@ def compute_bertscore(
     }
 
 
-def compute_fuzz_metrics(
+def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
     df: pd.DataFrame,
     lang: Language = "en",
     fast: bool = False,
@@ -365,7 +365,7 @@ def compute_fuzz_metrics(
             orig_success_posts,
             fuzzed_success_posts,
             fast=fast,
-            alpha=0.1,
+            alpha=0.05,
         )
 
     # Mauve
