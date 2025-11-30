@@ -253,7 +253,7 @@ def compute_mauve(
             model_id = "google-bert/bert-base-uncased"
         case "zh":
             model_id = "hfl/chinese-bert-wwm"
-    batch_size = 32
+    batch_size = 8
     logging.info(f"Computing mauve using {model_id} with batch size {batch_size}")
     try:
         out = mauve.compute_mauve(
@@ -304,11 +304,10 @@ def compute_fuzz_metrics(
     include_mauve: bool = False,
 ) -> FuzzMetrics:
     """
-    Compute fuzzing metrics where success is defined as matching stances.
+    Compute fuzzing metrics.
 
-    A row is considered a failure if its predicted value equals "error";
-    otherwise, it is a success only when the predicted stance matches the
-    reference stance.
+    A row counts as a successful fuzz attempt when it produced a prediction
+    (`predicted` is not NaN) and did not record an error (`error` is NaN).
     """
 
     assert {"stance", "predicted", "iteration"}.issubset(df.columns)
@@ -322,10 +321,13 @@ def compute_fuzz_metrics(
             "mauve": None,
         }
 
+    error_series = (
+        df["error"] if "error" in df.columns else pd.Series(pd.NA, index=df.index)
+    )
+
+    success_mask = df["predicted"].notna() & error_series.isna()
+
     # success rate
-    predicted = df["predicted"].astype(str)
-    stance = df["stance"].astype(str)
-    success_mask = stance != predicted
     attack_succ_rate = success_mask.sum() / len(df)
 
     # iterations to success
@@ -345,31 +347,35 @@ def compute_fuzz_metrics(
             "maximum": int(iterations_int.max()),
         }
 
-    orig_correct_posts = df.loc[success_mask, "text"].astype(str).tolist()
-    fuzzed_correct_posts = df.loc[success_mask, "new_text"].astype(str).tolist()
+    orig_success_posts = df.loc[success_mask, "text"].astype(str).tolist()
+    fuzzed_success_posts = df.loc[success_mask, "new_text"].astype(str).tolist()
 
     # BERTScore
     bertscore: BERTScore | None = None
     if include_bertscore:
         bertscore = compute_bertscore(
-            orig_correct_posts,
-            fuzzed_correct_posts,
+            orig_success_posts,
+            fuzzed_success_posts,
             lang=lang,
         )
     # Perplexity Ratio
     ppl = None
     if include_perplexity:
         ppl = compute_perplexity_ratio(
-            orig_correct_posts,
-            fuzzed_correct_posts,
+            orig_success_posts,
+            fuzzed_success_posts,
             fast=fast,
-            alpha=0.05,
+            alpha=0.1,
         )
 
     # Mauve
     mauve_score = None
     if include_mauve:
-        mauve_score = compute_mauve(orig_correct_posts, fuzzed_correct_posts, lang=lang)
+        mauve_score = compute_mauve(
+            orig_success_posts,
+            fuzzed_success_posts,
+            lang=lang,
+        )
 
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
