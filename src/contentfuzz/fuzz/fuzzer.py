@@ -122,7 +122,9 @@ class Fuzzer:
             match self.run():
                 case Success(seed):
                     return Success((seed, i))
-
+                case Failure(IndexError()):  # no more seeds to pick
+                    assert len(self.scheduler.population) == 0
+                    break
                 case Failure(e):
                     errs.append(f"{i}: {str(e)}")
         return Failure(errs)
