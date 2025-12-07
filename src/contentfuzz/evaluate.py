@@ -7,6 +7,7 @@ from sklearn.metrics import f1_score
 import evaluate
 import numpy as np
 import mauve
+from transformers import AutoTokenizer
 
 from .stance_dataset import StanceDataset
 from ._types import Stance
@@ -63,10 +64,10 @@ class Perplexity(TypedDict):
 class PerplexityRatio(TypedDict):
     """Perplexity ratio metrics"""
 
-    orig: Perplexity
-    fuzz: Perplexity
-    ratio_of_means: float
-    mean_of_ratios: float
+    orig: Perplexity | None
+    fuzz: Perplexity | None
+    ratio_of_means: float | None
+    mean_of_ratios: float | None
 
 
 class FuzzMetrics(TypedDict):
@@ -153,7 +154,10 @@ def get_majority_mean(
 
 
 def compute_perplexity(
-    posts: list[str], alpha: float = 0.05, fast: bool = False
+    posts: list[str],
+    alpha: float = 0.05,
+    fast: bool = False,
+    max_tokens: int | None = None,
 ) -> tuple[Perplexity, np.ndarray] | None:
     """
     Compute the perplexity between original and fuzzed posts.
@@ -162,11 +166,33 @@ def compute_perplexity(
     perplexity_metric = evaluate.load("perplexity", module_type="measurement")
     model_id = "gpt2" if fast else "google/gemma-3-1b-pt"
     batch_size = 32 if fast else 8
+
+    logging.info(
+        f"Processing posts for perplexity computation, max_tokens={max_tokens}"
+    )
+    processed_posts = posts
+    if max_tokens is not None and max_tokens > 0:
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+        def _truncate(text: str) -> str:
+            token_ids = tokenizer.encode(text, add_special_tokens=False)
+            if len(token_ids) <= max_tokens:
+                return text
+            decoded = tokenizer.decode(
+                token_ids[:max_tokens],
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=False,
+            )
+            return str(decoded)
+
+        processed_posts = [_truncate(post) for post in posts]
+
     logging.info(f"Computing perplexity using {model_id} with batch size {batch_size}")
     fuzzed_results = perplexity_metric.compute(
-        data=posts,
+        data=processed_posts,
         model_id=model_id,
         batch_size=batch_size,
+        device="cuda",
     )
 
     if not fuzzed_results or "perplexities" not in fuzzed_results:
@@ -192,44 +218,54 @@ def compute_perplexity_ratio(
     fuzzed_posts: list[str],
     alpha: float = 0.05,
     fast: bool = False,
+    max_tokens: int | None = None,
 ) -> PerplexityRatio | None:
     """
     Compute the perplexity ratio between original and fuzzed posts.
     """
 
+    orig_ppl, orig_perplexities = None, None
+    fuzzed_ppl, fuzzed_perplexities = None, None
+    ratio_of_means = None
+    mean_of_ratios = None
     orig_ppl_results = compute_perplexity(
         orig_posts,
         alpha=alpha,
         fast=fast,
+        max_tokens=max_tokens,
     )
+
+    if orig_ppl_results:
+        orig_ppl, orig_perplexities = orig_ppl_results
+
     fuzzed_ppl_results = compute_perplexity(
         fuzzed_posts,
         alpha=alpha,
         fast=fast,
+        max_tokens=max_tokens,
     )
 
-    if not orig_ppl_results or not fuzzed_ppl_results:
-        return None
-
-    orig_ppl, orig_perplexities = orig_ppl_results
-    fuzzed_ppl, fuzzed_perplexities = fuzzed_ppl_results
+    if fuzzed_ppl_results:
+        fuzzed_ppl, fuzzed_perplexities = fuzzed_ppl_results
 
     # ratio of means
     # if there is majority mean, use that
-    if (
-        orig_ppl["majority_mean"] is not None
-        and fuzzed_ppl["majority_mean"] is not None
-    ):
-        ratio_of_means = round(
-            float(fuzzed_ppl["majority_mean"] / orig_ppl["majority_mean"]), 4
-        )
-    else:
-        ratio_of_means = round(float(fuzzed_ppl["mean"] / orig_ppl["mean"]), 4)
+    if orig_ppl is not None and fuzzed_ppl is not None:
+        if (
+            orig_ppl["majority_mean"] is not None
+            and fuzzed_ppl["majority_mean"] is not None
+        ):
+            ratio_of_means = round(
+                float(fuzzed_ppl["majority_mean"] / orig_ppl["majority_mean"]), 4
+            )
+        else:
+            ratio_of_means = round(float(fuzzed_ppl["mean"] / orig_ppl["mean"]), 4)
 
     # mean of ratios
-    ratios = fuzzed_perplexities / orig_perplexities
-    # take majority mean of ratios with alpha trimming
-    mean_of_ratios, _ = get_majority_mean(ratios, alpha)
+    if orig_perplexities is not None and fuzzed_perplexities is not None:
+        ratios = fuzzed_perplexities / orig_perplexities
+        # take majority mean of ratios with alpha trimming
+        mean_of_ratios, _ = get_majority_mean(ratios, alpha)
     return {
         "orig": orig_ppl,
         "fuzz": fuzzed_ppl,
@@ -366,6 +402,7 @@ def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
             fuzzed_success_posts,
             fast=fast,
             alpha=0.05,
+            max_tokens=1024,
         )
 
     # Mauve
