@@ -228,6 +228,7 @@ def compute_perplexity_ratio(
     fuzzed_ppl, fuzzed_perplexities = None, None
     ratio_of_means = None
     mean_of_ratios = None
+    ratios = None
     orig_ppl_results = compute_perplexity(
         orig_posts,
         alpha=alpha,
