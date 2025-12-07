@@ -156,7 +156,6 @@ def get_majority_mean(
 def compute_perplexity(
     posts: list[str],
     alpha: float = 0.05,
-    fast: bool = False,
     max_tokens: int | None = None,
 ) -> tuple[Perplexity, np.ndarray] | None:
     """
@@ -232,7 +231,6 @@ def compute_perplexity_ratio(
     orig_ppl_results = compute_perplexity(
         orig_posts,
         alpha=alpha,
-        fast=fast,
         max_tokens=max_tokens,
     )
 
@@ -242,7 +240,6 @@ def compute_perplexity_ratio(
     fuzzed_ppl_results = compute_perplexity(
         fuzzed_posts,
         alpha=alpha,
-        fast=fast,
         max_tokens=max_tokens,
     )
 
@@ -402,7 +399,6 @@ def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
         ppl = compute_perplexity_ratio(
             orig_success_posts,
             fuzzed_success_posts,
-            fast=fast,
             alpha=0.05,
             max_tokens=512,
         )
