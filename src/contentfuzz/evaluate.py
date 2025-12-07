@@ -164,8 +164,8 @@ def compute_perplexity(
     """
 
     perplexity_metric = evaluate.load("perplexity", module_type="measurement")
-    model_id = "gpt2" if fast else "google/gemma-3-1b-pt"
-    batch_size = 32 if fast else 8
+    model_id = "google/gemma-3-1b-pt"
+    batch_size = 32
 
     logging.info(
         f"Processing posts for perplexity computation, max_tokens={max_tokens}"
@@ -267,13 +267,14 @@ def compute_perplexity_ratio(
         ratios = fuzzed_perplexities / orig_perplexities
         # take majority mean of ratios with alpha trimming
         mean_of_ratios, _ = get_majority_mean(ratios, alpha)
+        if mean_of_ratios is None:
+            mean_of_ratios = round(float(np.mean(ratios)), 4)
+
     return {
         "orig": orig_ppl,
         "fuzz": fuzzed_ppl,
         "ratio_of_means": ratio_of_means,
-        "mean_of_ratios": (
-            mean_of_ratios if mean_of_ratios else round(float(np.mean(ratios)), 4)
-        ),
+        "mean_of_ratios": mean_of_ratios,
     }
 
 
@@ -403,7 +404,7 @@ def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
             fuzzed_success_posts,
             fast=fast,
             alpha=0.05,
-            max_tokens=1024,
+            max_tokens=512,
         )
 
     # Mauve
