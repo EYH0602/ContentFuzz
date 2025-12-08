@@ -221,6 +221,13 @@ def compute_perplexity_ratio(
 ) -> PerplexityRatio | None:
     """
     Compute the perplexity ratio between original and fuzzed posts.
+
+    Args:
+        orig_posts (list[str]): List of original posts.
+        fuzzed_posts (list[str]): List of fuzzed posts.
+        alpha (float, optional): Trimming parameter for majority mean. Defaults to 0.05.
+        fast (bool, optional): If True, use fast computation. Defaults to False.
+        max_tokens (int | None, optional): Maximum number of tokens to consider per post; posts will be truncated if they exceed this limit. Defaults to None.
     """
 
     orig_ppl, orig_perplexities = None, None
