@@ -191,7 +191,6 @@ def compute_perplexity(
         data=processed_posts,
         model_id=model_id,
         batch_size=batch_size,
-        device="cuda",
     )
 
     if not fuzzed_results or "perplexities" not in fuzzed_results:
@@ -216,7 +215,6 @@ def compute_perplexity_ratio(
     orig_posts: list[str],
     fuzzed_posts: list[str],
     alpha: float = 0.05,
-    fast: bool = False,
     max_tokens: int | None = None,
 ) -> PerplexityRatio | None:
     """
@@ -340,7 +338,6 @@ def compute_bertscore(
 def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
     df: pd.DataFrame,
     lang: Language = "en",
-    fast: bool = False,
     include_bertscore: bool = False,
     include_perplexity: bool = False,
     include_mauve: bool = False,
