@@ -2,16 +2,17 @@
 Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
-from returns.result import safe, Result, ResultE
 from google.genai.types import (
-    GenerateContentConfig,
     AutomaticFunctionCallingConfig,
+    GenerateContentConfig,
     ThinkingConfig,
 )
+from returns.result import Result, ResultE, safe
 
+from ..utils import Language, exp_retry
 from ._base import AnalysisOutput
+from ._cola_prompts import PROMPT_SETS
 from .utils import classify_w_prob, get_vertexai_client
-from ..utils import exp_retry
 
 # assign experts for target
 target_role_map = {
@@ -24,52 +25,22 @@ target_role_map = {
 }
 
 
-LINGUIST_INSTRUCTION = """
-Accurately and concisely explain the linguistic elements in the sentence and how these elements affect meaning, 
-including grammatical structure, tense and inflection, virtual speech, rhetorical devices, lexical choices and so on. 
-Do nothing else."""
-
-EXPERT_INSTRUCTION = """
-Accurately and concisely explain the key elements contained in the quote, 
-such as characters, events, parties, religions, etc. 
-Also explain their relationship with {target} (if exist). 
-Do nothing else."""
-
-TOP_USER_INSTRUCTION = """
-Analyze the following sentence, focusing on the content, hashtags, 
-Internet slang and colloquialisms, emotional tone, implied meaning, and so on. 
-Do nothing else."""
-
-STANCE_ANALYSIS_INSTRUCTION = """
-'''{tweet}'''
-<<<{ling_response}>>>
-[[[{expert_response}]]]
----{user_response}---
-
-You think the attitude behind the sentence surrounded by ''' ''' is {stance} of {target}.
-The content enclosed by <<< >>> represents linguistic analysis. The content within [[[ ]]] represents the analysis of a {role}. 
-The content enclosed by --- ---  represents the analysis of a heavy social media user. 
-Identify the top three pieces of evidence from these that best support your opinion and argue for your opinion.
-"""
-
-FINAL_JUDGEMENT_INST = """
-Determine whether the sentence is in favor of or against {target}, or is irrelevant to {target}.
-Sentence: {tweet}
-Judge this in relation to the following arguments:
-Arguments that the attitude is in favor: {favor_response}
-Arguments that the attitude is against: {against_response}
-Choose from:\n A: Against\nB: Favor\nC: Irrelevant\n 
-Constraint: Answer with only the option above that is most accurate and nothing else.
-"""
-
-
 class COLA:
     """Zero-shot stance analysis using Google Gemini API"""
 
-    def __init__(self, model: str = "gemini-2.5-flash-lite") -> None:
+    def __init__(
+        self,
+        model: str = "gemini-2.5-flash-lite",
+        language: Language = "en",
+    ) -> None:
         # self.model, self.client = _get_model_and_client(model)
         self.model = model
         self.client = get_vertexai_client()
+        self.language = language
+        try:
+            self.prompts = PROMPT_SETS[language]
+        except KeyError as exc:  # pragma: no cover - defensive guard
+            raise ValueError(f"Unsupported language: {language}") from exc
 
     @safe
     @exp_retry
@@ -168,18 +139,20 @@ class COLA:
     def linguist_analysis(self, tweet: str) -> ResultE[str]:
         """Let an expert linguist analyze the tweet."""
 
-        return self.get_completion_with_role("linguist", LINGUIST_INSTRUCTION, tweet)
+        return self.get_completion_with_role(
+            "linguist", self.prompts.linguist_instruction, tweet
+        )
 
     def expert_analysis(self, tweet: str, target: str) -> ResultE[str]:
         """Let a domain expert analyze the tweet."""
         role = target_role_map.get(target, "expert")
-        instruction = EXPERT_INSTRUCTION.format(target=target)
+        instruction = self.prompts.expert_instruction.format(target=target)
         return self.get_completion_with_role(role, instruction, tweet)
 
     def user_analysis(self, tweet: str) -> ResultE[str]:
         """Let a heavy social media user analyze the tweet."""
         return self.get_completion_with_role(
-            "heavy social media user", TOP_USER_INSTRUCTION, tweet
+            "heavy social media user", self.prompts.user_instruction, tweet
         )
 
     def stance_analysis(  # pylint: disable=R0913,R0917
@@ -193,7 +166,7 @@ class COLA:
     ) -> ResultE[str]:
         """Try to do stance analysis with a given stance"""
         role = target_role_map.get(target, "expert")
-        prompt = STANCE_ANALYSIS_INSTRUCTION.format(
+        prompt = self.prompts.stance_instruction.format(
             tweet=tweet,
             ling_response=ling_response,
             expert_response=expert_response,
@@ -217,7 +190,7 @@ class COLA:
         for the task is a direction for future improvement.
         If you have any questions, feel free to discuss them with me!
         """
-        prompt = FINAL_JUDGEMENT_INST.format(
+        prompt = self.prompts.final_judgement_instruction.format(
             tweet=tweet,
             favor_response=favor_response,
             against_response=against_response,
