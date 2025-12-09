@@ -19,19 +19,19 @@ class PromptSet:
 EN_LINGUIST_PROMPT = """
 Accurately and concisely explain the linguistic elements in the sentence and how these elements affect meaning,
 including grammatical structure, tense and inflection, virtual speech, rhetorical devices, lexical choices and so on.
-Do nothing else.
-"""
+Do nothing else."""
+
 EN_EXPERT_PROMPT = """
 Accurately and concisely explain the key elements contained in the quote,
 such as characters, events, parties, religions, etc.
 Also explain their relationship with {target} (if exist).
-Do nothing else.
-"""
+Do nothing else."""
+
 EN_USER_PROMPT = """
 Analyze the following sentence, focusing on the content, hashtags,
 Internet slang and colloquialisms, emotional tone, implied meaning, and so on.
-Do nothing else.
-"""
+Do nothing else."""
+
 EN_STANCE_PROMPT = """
 '''{tweet}'''
 <<<{ling_response}>>>
@@ -56,19 +56,19 @@ Constraint: Answer with only the option above that is most accurate and nothing 
 ZH_LINGUIST_PROMPT = """
 准确而简洁地解释句子中的语言要素，以及这些要素如何影响意义，
 包括语法结构、时态和词形变化、转述、修辞手法、词语选择等。
-不要做任何其他事情。
-"""
+不要做任何其他事情。"""
+
 ZH_EXPERT_PROMPT = """
 准确而简洁地解释引文中包含的关键元素，
 例如人物、事件、群体、宗教等。
 同时解释它们与 {target} 的关系（如果存在）。
-不要做任何其他事情。
-"""
+不要做任何其他事情。"""
+
 ZH_USER_PROMPT = """
 分析下面的句子，重点关注内容、标签（hashtags）、
 网络用语和口语表达、情绪语气、隐含意义等。
-不要做任何其他事情。
-"""
+不要做任何其他事情。"""
+
 ZH_STANCE_PROMPT = """
 '''{tweet}'''
 <<<{ling_response}>>>
@@ -81,6 +81,7 @@ ZH_STANCE_PROMPT = """
 --- --- 中的内容代表社交媒体重度用户的分析。
 请从这些内容中找出三条最能支持你观点的证据，并根据这些进行论证。
 """
+
 ZH_FINAL_PROMPT = """
 判断这句话是支持 {target}、反对 {target}，还是与 {target} 无关。
 句子：{tweet}
