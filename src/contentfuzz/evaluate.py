@@ -1,5 +1,6 @@
 from typing import TypedDict, Literal
 import logging
+from functools import cache
 
 import pandas as pd
 import orjson
@@ -153,6 +154,12 @@ def get_majority_mean(
     return majority_mean, majority_range
 
 
+@cache
+def _get_tokenizer(model_id: str):
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    return tokenizer
+
+
 def compute_perplexity(
     posts: list[str],
     alpha: float = 0.05,
@@ -160,11 +167,6 @@ def compute_perplexity(
 ) -> tuple[Perplexity, np.ndarray] | None:
     """
     Compute the perplexity between original and fuzzed posts.
-
-    Args:
-        posts (list[str]): List of posts to compute perplexity for.
-        alpha (float, optional): Truncation percentile for majority mean. Defaults to 0.05.
-        max_tokens (int | None, optional): Maximum number of tokens to consider per post; posts will be truncated if they exceed this limit. Defaults to None.
     """
 
     perplexity_metric = evaluate.load("perplexity", module_type="measurement")
@@ -176,7 +178,7 @@ def compute_perplexity(
     )
     processed_posts = posts
     if max_tokens is not None and max_tokens > 0:
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        tokenizer = _get_tokenizer(model_id)
 
         def _truncate(text: str) -> str:
             token_ids = tokenizer.encode(text, add_special_tokens=False)
