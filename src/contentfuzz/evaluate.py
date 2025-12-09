@@ -160,6 +160,11 @@ def compute_perplexity(
 ) -> tuple[Perplexity, np.ndarray] | None:
     """
     Compute the perplexity between original and fuzzed posts.
+
+    Args:
+        posts (list[str]): List of posts to compute perplexity for.
+        alpha (float, optional): Truncation percentile for majority mean. Defaults to 0.05.
+        max_tokens (int | None, optional): Maximum number of tokens to consider per post; posts will be truncated if they exceed this limit. Defaults to None.
     """
 
     perplexity_metric = evaluate.load("perplexity", module_type="measurement")
