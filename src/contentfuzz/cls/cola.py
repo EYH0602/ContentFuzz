@@ -11,7 +11,7 @@ from returns.result import Result, ResultE, safe
 
 from ..utils import Language, exp_retry
 from ._base import AnalysisOutput
-from ._cola_prompts import PROMPT_SETS
+from ._cola_prompts import PROMPT_SETS, ROLE_TRANSLATIONS, STANCE_TRANSLATIONS
 from .utils import classify_w_prob, get_vertexai_client
 
 # assign experts for target
@@ -41,6 +41,14 @@ class COLA:
             self.prompts = PROMPT_SETS[language]
         except KeyError as exc:  # pragma: no cover - defensive guard
             raise ValueError(f"Unsupported language: {language}") from exc
+
+    def _translate_role(self, role: str) -> str:
+        """Translate role name to the appropriate language."""
+        return ROLE_TRANSLATIONS[self.language].get(role, role)
+
+    def _translate_stance(self, stance: str) -> str:
+        """Translate stance to the appropriate language."""
+        return STANCE_TRANSLATIONS[self.language].get(stance, stance)
 
     @safe
     @exp_retry
@@ -138,21 +146,23 @@ class COLA:
 
     def linguist_analysis(self, tweet: str) -> ResultE[str]:
         """Let an expert linguist analyze the tweet."""
-
+        translated_role = self._translate_role("linguist")
         return self.get_completion_with_role(
-            "linguist", self.prompts.linguist_instruction, tweet
+            translated_role, self.prompts.linguist_instruction, tweet
         )
 
     def expert_analysis(self, tweet: str, target: str) -> ResultE[str]:
         """Let a domain expert analyze the tweet."""
         role = target_role_map.get(target, "expert")
+        translated_role = self._translate_role(role)
         instruction = self.prompts.expert_instruction.format(target=target)
-        return self.get_completion_with_role(role, instruction, tweet)
+        return self.get_completion_with_role(translated_role, instruction, tweet)
 
     def user_analysis(self, tweet: str) -> ResultE[str]:
         """Let a heavy social media user analyze the tweet."""
+        translated_role = self._translate_role("heavy social media user")
         return self.get_completion_with_role(
-            "heavy social media user", self.prompts.user_instruction, tweet
+            translated_role, self.prompts.user_instruction, tweet
         )
 
     def stance_analysis(  # pylint: disable=R0913,R0917
@@ -166,14 +176,16 @@ class COLA:
     ) -> ResultE[str]:
         """Try to do stance analysis with a given stance"""
         role = target_role_map.get(target, "expert")
+        translated_role = self._translate_role(role)
+        translated_stance = self._translate_stance(stance)
         prompt = self.prompts.stance_instruction.format(
             tweet=tweet,
             ling_response=ling_response,
             expert_response=expert_response,
             user_response=user_response,
             target=target,
-            stance=stance,
-            role=role,
+            stance=translated_stance,
+            role=translated_role,
         )
         return self.get_completion(prompt)
 

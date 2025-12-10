@@ -16,6 +16,41 @@ class PromptSet:
     final_judgement_instruction: str
 
 
+# Stance translation mappings
+STANCE_TRANSLATIONS: dict[Language, dict[str, str]] = {
+    "en": {
+        "in favor": "in favor",
+        "against": "against",
+    },
+    "zh": {
+        "in favor": "支持",
+        "against": "反对",
+    },
+}
+
+# Role translation mappings
+ROLE_TRANSLATIONS: dict[Language, dict[str, str]] = {
+    "en": {
+        "linguist": "linguist",
+        "expert": "expert",
+        "theologian": "theologian",
+        "environmental scientist": "environmental scientist",
+        "sociologist": "sociologist",
+        "political scientist": "political scientist",
+        "heavy social media user": "heavy social media user",
+    },
+    "zh": {
+        "linguist": "语言学家",
+        "expert": "专家",
+        "theologian": "神学家",
+        "environmental scientist": "环境科学家",
+        "sociologist": "社会学家",
+        "political scientist": "政治学家",
+        "heavy social media user": "社交媒体重度用户",
+    },
+}
+
+
 EN_LINGUIST_PROMPT = """
 Accurately and concisely explain the linguistic elements in the sentence and how these elements affect meaning,
 including grammatical structure, tense and inflection, virtual speech, rhetorical devices, lexical choices and so on.
