@@ -86,6 +86,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
             dataset = load_sem16("test")
         case "vast":
             dataset = load_vast("test")
+    lang = DatasetLangMap[dataset_name]
 
     analyzer: StanceAnalyzer
     match analyzer_name:
@@ -94,7 +95,7 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
         case "encoder":
             analyzer = Encoder(model=cls_model)
         case "cola":
-            analyzer = COLA(model=cls_model)
+            analyzer = COLA(model=cls_model, language=lang)
 
     scheduler: SeedScheduler
     match schedule:
@@ -118,7 +119,6 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     correct_tasks, _ = get_correct_tasks(dataset, gen_results)
     ct = correct_tasks.to_dict("records")
 
-    lang = DatasetLangMap[dataset_name]
     mutator = Mutator(
         model=fuzzer_model,
         n=mutate_n,

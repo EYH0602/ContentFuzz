@@ -19,6 +19,7 @@ from contentfuzz.stance_dataset import (
     load_c_stance,
     load_sem16,
     load_vast,
+    DatasetLangMap,
 )
 from contentfuzz.evaluate import (
     EvalMetrics,
@@ -59,6 +60,7 @@ def main(
             dataset = load_sem16("test")
         case "vast":
             dataset = load_vast("test")
+    lang = DatasetLangMap[dataset_name]
 
     skip_count = get_skip_cnt(output_result_path)
     dataset = dataset[skip_count:]
@@ -74,7 +76,7 @@ def main(
         case "zeroshot":
             analyzer = ZeroshotAnalyzer(model=model)
         case "cola":
-            analyzer = COLA(model=model)
+            analyzer = COLA(model=model, language=lang)
         case "encoder":
             analyzer = Encoder(model=model)
 
