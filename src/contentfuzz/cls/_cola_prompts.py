@@ -1,6 +1,7 @@
 """prompt templates for COLA."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 from ..utils import Language
 
@@ -16,8 +17,22 @@ class PromptSet:
     final_judgement_instruction: str
 
 
+Role = Literal[
+    "linguist",
+    "expert",
+    "theologian",
+    "environmental scientist",
+    "sociologist",
+    "political scientist",
+    "heavy social media user",
+]
+
+
+COLAStance = Literal["in favor", "against"]
+
+
 # Stance translation mappings
-STANCE_TRANSLATIONS: dict[Language, dict[str, str]] = {
+STANCE_TRANSLATIONS: dict[Language, dict[COLAStance, str]] = {
     "en": {
         "in favor": "in favor",
         "against": "against",
@@ -29,7 +44,7 @@ STANCE_TRANSLATIONS: dict[Language, dict[str, str]] = {
 }
 
 # Role translation mappings
-ROLE_TRANSLATIONS: dict[Language, dict[str, str]] = {
+ROLE_TRANSLATIONS: dict[Language, dict[Role, str]] = {
     "en": {
         "linguist": "linguist",
         "expert": "expert",

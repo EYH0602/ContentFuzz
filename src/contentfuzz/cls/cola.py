@@ -11,11 +11,17 @@ from returns.result import Result, ResultE, safe
 
 from ..utils import Language, exp_retry
 from ._base import AnalysisOutput
-from ._cola_prompts import PROMPT_SETS, ROLE_TRANSLATIONS, STANCE_TRANSLATIONS
+from ._cola_prompts import (
+    PROMPT_SETS,
+    ROLE_TRANSLATIONS,
+    STANCE_TRANSLATIONS,
+    COLAStance,
+    Role,
+)
 from .utils import classify_w_prob, get_vertexai_client
 
 # assign experts for target
-target_role_map = {
+target_role_map: dict[str, Role] = {
     "Atheism": "theologian",
     "Climate Change is a Real Concern": "environmental scientist",
     "Feminist Movement": "sociologist",
@@ -36,19 +42,19 @@ class COLA:
         # self.model, self.client = _get_model_and_client(model)
         self.model = model
         self.client = get_vertexai_client()
-        self.language = language
+        self.language: Language = language
         try:
             self.prompts = PROMPT_SETS[language]
         except KeyError as exc:  # pragma: no cover - defensive guard
             raise ValueError(f"Unsupported language: {language}") from exc
 
-    def _translate_role(self, role: str) -> str:
+    def _translate_role(self, role: Role) -> str:
         """Translate role name to the appropriate language."""
-        return ROLE_TRANSLATIONS[self.language].get(role, role)
+        return ROLE_TRANSLATIONS[self.language][role]
 
-    def _translate_stance(self, stance: str) -> str:
+    def _translate_stance(self, stance: COLAStance) -> str:
         """Translate stance to the appropriate language."""
-        return STANCE_TRANSLATIONS[self.language].get(stance, stance)
+        return STANCE_TRANSLATIONS[self.language][stance]
 
     @safe
     @exp_retry
@@ -153,7 +159,7 @@ class COLA:
 
     def expert_analysis(self, tweet: str, target: str) -> ResultE[str]:
         """Let a domain expert analyze the tweet."""
-        role = target_role_map.get(target, "expert")
+        role: Role = target_role_map.get(target, "expert")
         translated_role = self._translate_role(role)
         instruction = self.prompts.expert_instruction.format(target=target)
         return self.get_completion_with_role(translated_role, instruction, tweet)
@@ -172,10 +178,10 @@ class COLA:
         expert_response: str,
         user_response: str,
         target: str,
-        stance: str,
+        stance: COLAStance,
     ) -> ResultE[str]:
         """Try to do stance analysis with a given stance"""
-        role = target_role_map.get(target, "expert")
+        role: Role = target_role_map.get(target, "expert")
         translated_role = self._translate_role(role)
         translated_stance = self._translate_stance(stance)
         prompt = self.prompts.stance_instruction.format(
