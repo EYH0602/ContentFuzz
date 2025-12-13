@@ -3,12 +3,14 @@ import logging
 from orjsonl import orjsonl
 from returns.result import Failure, Success
 from tqdm import tqdm
+from deprecated import deprecated
 
 from .cls import StanceAnalyzer
 from .evaluate import GenResult
 from .stance_dataset import StanceDataset
 
 
+@deprecated("Use `run_batch_generation` with `batch_size=1` instead.")
 def run_generation(
     dataset: StanceDataset,
     analyzer: StanceAnalyzer,
