@@ -53,7 +53,7 @@ class ZeroshotAnalyzer:
         results = []
 
         # Progress bar over completion of coroutines
-        for coro in tqdm(asyncio.as_completed(coros), total=len(coros)):
+        for coro in asyncio.as_completed(coros):  # , total=len(coros)):
             r = await coro
             results.append(r)
 
@@ -64,13 +64,19 @@ class ZeroshotAnalyzer:
     ) -> list[ResultE[AnalysisOutput]]:
         """Run async zero-shot analysis in batches using a single event loop."""
 
-        async def run_batches() -> list[AnalysisOutput]:
+        async def _run_batches() -> list[AnalysisOutput]:
             # Use one async client for the whole run to avoid re-inits.
             async_client = self.client.aio
+            batch_outputs: list[AnalysisOutput] = []
             try:
-                return await self._run_async_analysis(tasks, async_client)
+                for start in tqdm(range(0, len(tasks), batch_size)):
+                    batch_tasks = tasks[start : start + batch_size]
+                    batch_outputs.extend(
+                        await self._run_async_analysis(batch_tasks, async_client)
+                    )
+                return batch_outputs
             finally:
                 await async_client.aclose()
 
-        batch_outputs = asyncio.run(run_batches())
+        batch_outputs = asyncio.run(_run_batches())
         return [Success(output) for output in batch_outputs]
