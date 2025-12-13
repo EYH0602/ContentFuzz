@@ -2,14 +2,23 @@
 Stance Detection with Collaborative Role-Infused LLM-Based Agents (ICWSM 2024)
 """
 
+import asyncio
+
+from google.genai.client import AsyncClient
 from google.genai.types import (
     AutomaticFunctionCallingConfig,
     GenerateContentConfig,
     ThinkingConfig,
 )
-from returns.result import Result, ResultE, safe
+from returns.future import FutureResult, FutureResultE, future_safe
+from returns.io import IOResultE
+from returns.result import ResultE
+from tenacity import (
+    retry,
+    wait_random_exponential,
+)
 
-from ..utils import Language, exp_retry
+from ..utils import Language
 from ._base import AnalysisOutput
 from ._cola_prompts import (
     PROMPT_SETS,
@@ -18,7 +27,7 @@ from ._cola_prompts import (
     COLAStance,
     Role,
 )
-from .utils import classify_w_prob, get_vertexai_client
+from .utils import classify_w_prob_async, get_vertexai_client
 
 # assign experts for target
 target_role_map: dict[str, Role] = {
@@ -56,9 +65,14 @@ class COLA:
         """Translate stance to the appropriate language."""
         return STANCE_TRANSLATIONS[self.language][stance]
 
-    @safe
-    @exp_retry
-    def get_completion_with_role(self, role: str, instruction: str, tweet: str) -> str:
+    @future_safe
+    @retry(
+        reraise=True,
+        wait=wait_random_exponential(max=60, multiplier=1),
+    )
+    async def get_completion_with_role(
+        self, role: str, instruction: str, tweet: str, async_client: AsyncClient
+    ) -> str:
         """Get completion from OpenAI API with specified role.
 
         Args:
@@ -89,7 +103,7 @@ class COLA:
 
         # return content
 
-        response = self.client.models.generate_content(
+        response = await async_client.models.generate_content(
             model=self.model,
             contents=f"{instruction}\n{tweet}",
             config=GenerateContentConfig(
@@ -107,9 +121,12 @@ class COLA:
             raise ValueError("Gemini API returned no output")
         return text
 
-    @safe
-    @exp_retry
-    def get_completion(self, prompt: str) -> str:
+    @future_safe
+    @retry(
+        reraise=True,
+        wait=wait_random_exponential(max=60, multiplier=1),
+    )
+    async def get_completion(self, prompt: str, async_client: AsyncClient) -> str:
         """Get completion from OpenAI API.
 
         Args:
@@ -134,7 +151,7 @@ class COLA:
 
         # return content
 
-        response = self.client.models.generate_content(
+        response = await async_client.models.generate_content(
             model=self.model,
             contents=prompt,
             config=GenerateContentConfig(
@@ -150,25 +167,33 @@ class COLA:
             raise ValueError("Gemini API returned no output")
         return text
 
-    def linguist_analysis(self, tweet: str) -> ResultE[str]:
+    def linguist_analysis(
+        self, tweet: str, async_client: AsyncClient
+    ) -> FutureResultE[str]:
         """Let an expert linguist analyze the tweet."""
         translated_role = self._translate_role("linguist")
         return self.get_completion_with_role(
-            translated_role, self.prompts.linguist_instruction, tweet
+            translated_role, self.prompts.linguist_instruction, tweet, async_client
         )
 
-    def expert_analysis(self, tweet: str, target: str) -> ResultE[str]:
+    def expert_analysis(
+        self, tweet: str, target: str, async_client: AsyncClient
+    ) -> FutureResultE[str]:
         """Let a domain expert analyze the tweet."""
         role: Role = target_role_map.get(target, "expert")
         translated_role = self._translate_role(role)
         instruction = self.prompts.expert_instruction.format(target=target)
-        return self.get_completion_with_role(translated_role, instruction, tweet)
+        return self.get_completion_with_role(
+            translated_role, instruction, tweet, async_client
+        )
 
-    def user_analysis(self, tweet: str) -> ResultE[str]:
+    def user_analysis(
+        self, tweet: str, async_client: AsyncClient
+    ) -> FutureResultE[str]:
         """Let a heavy social media user analyze the tweet."""
         translated_role = self._translate_role("heavy social media user")
         return self.get_completion_with_role(
-            translated_role, self.prompts.user_instruction, tweet
+            translated_role, self.prompts.user_instruction, tweet, async_client
         )
 
     def stance_analysis(  # pylint: disable=R0913,R0917
@@ -179,7 +204,8 @@ class COLA:
         user_response: str,
         target: str,
         stance: COLAStance,
-    ) -> ResultE[str]:
+        async_client: AsyncClient,
+    ) -> FutureResultE[str]:
         """Try to do stance analysis with a given stance"""
         role: Role = target_role_map.get(target, "expert")
         translated_role = self._translate_role(role)
@@ -193,11 +219,16 @@ class COLA:
             stance=translated_stance,
             role=translated_role,
         )
-        return self.get_completion(prompt)
+        return self.get_completion(prompt, async_client)
 
     def final_judgment(
-        self, tweet: str, favor_response: str, against_response: str, target: str
-    ) -> ResultE[AnalysisOutput]:
+        self,
+        tweet: str,
+        favor_response: str,
+        against_response: str,
+        target: str,
+        async_client: AsyncClient,
+    ) -> FutureResultE[AnalysisOutput]:
         """
         By the COLA authors:
         This is an example of a prompt for the final judgment stage.
@@ -215,42 +246,52 @@ class COLA:
             target=target,
         )
 
-        return classify_w_prob(self.client, self.model, None, prompt)
+        return classify_w_prob_async(async_client, self.model, None, prompt)
 
-    def _analyze_single(self, text: str, target: str) -> ResultE[AnalysisOutput]:
+    def _analyze_single(
+        self,
+        text: str,
+        target: str,
+        async_client: AsyncClient,
+    ) -> FutureResultE[AnalysisOutput]:
         """Run the full COLA pipeline for a single `(text, target)` pair."""
         tweet = text
-        return Result.do(
+        return FutureResult.do(
             final_response
             # Step 1: Linguist analysis
-            for ling_response in self.linguist_analysis(tweet)
+            async for ling_response in self.linguist_analysis(tweet, async_client)
             # Step 2: Expert analysis
-            for expert_response in self.expert_analysis(tweet, target)
+            async for expert_response in self.expert_analysis(
+                tweet, target, async_client
+            )
             # Step 3: Heavy social media user analysis
-            for user_response in self.user_analysis(tweet)
+            async for user_response in self.user_analysis(tweet, async_client)
             # Step 4: Debate
-            for favor_response in self.stance_analysis(
+            async for favor_response in self.stance_analysis(
                 tweet,
                 ling_response,
                 expert_response,
                 user_response,
                 target,
                 "in favor",
+                async_client,
             )
-            for against_response in self.stance_analysis(
+            async for against_response in self.stance_analysis(
                 tweet,
                 ling_response,
                 expert_response,
                 user_response,
                 target,
                 "against",
+                async_client,
             )
             # Step 5: Final judgment
-            for final_response in self.final_judgment(
+            async for final_response in self.final_judgment(
                 tweet,
                 favor_response,
                 against_response,
                 target,
+                async_client,
             )
         )
 
@@ -258,4 +299,22 @@ class COLA:
         self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
         """Process tasks sequentially. COLA does not support true batching."""
-        return [self._analyze_single(text, target) for text, target in tasks]
+
+        async def _run_batches() -> list[IOResultE[AnalysisOutput]]:
+            async_client = self.client.aio
+            sem = asyncio.Semaphore(batch_size or len(tasks))
+            # Use one async client for the whole run to avoid re-inits.
+            try:
+                async with sem:
+                    result = await asyncio.gather(
+                        *(
+                            self._analyze_single(task[0], task[1], async_client)
+                            for task in tasks
+                        )
+                    )
+                    return result
+            finally:
+                await async_client.aclose()
+
+        outputs = asyncio.run(_run_batches())
+        return [o._inner_value for o in outputs]
