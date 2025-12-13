@@ -304,15 +304,15 @@ class COLA:
             async_client = self.client.aio
             sem = asyncio.Semaphore(batch_size or len(tasks))
             # Use one async client for the whole run to avoid re-inits.
-            try:
+            async def run_with_semaphore(task):
                 async with sem:
-                    result = await asyncio.gather(
-                        *(
-                            self._analyze_single(task[0], task[1], async_client)
-                            for task in tasks
-                        )
-                    )
-                    return result
+                    return await self._analyze_single(task[0], task[1], async_client)
+
+            try:
+                result = await asyncio.gather(
+                    *(run_with_semaphore(task) for task in tasks)
+                )
+                return result
             finally:
                 await async_client.aclose()
 
