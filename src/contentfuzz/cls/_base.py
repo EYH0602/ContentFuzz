@@ -27,7 +27,7 @@ class StanceAnalyzer(Protocol):
         Analyze multiple `(text, target)` pairs in batches and return results in order.
 
         Args:
-            entries (list[tuple[str, str]]): List of (text, target) pairs.
+            tasks (list[tuple[str, str]]): List of (text, target) pairs.
             batch_size (int | None): Number of pairs to process together. Defaults to None.
                 If None, processes all samples concurrently, and let retry handle rate limits.
         """
