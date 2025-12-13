@@ -256,10 +256,8 @@ class COLA:
             )
         )
 
-    def analyze_multiple(
-        self, entries: list[tuple[str, str]], batch_size: int = 8
-    ) -> ResultE[list[AnalysisOutput]]:
+    def batched_analysis(
+        self, tasks: list[tuple[str, str]], batch_size: int = 8
+    ) -> list[ResultE[AnalysisOutput]]:
         """Batch mode is not yet supported for COLA."""
-        return Failure(
-            NotImplementedError("Batch analysis not implemented for COLA analyzer")
-        )
+        return []

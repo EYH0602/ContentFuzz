@@ -2,6 +2,7 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel
 from returns.result import ResultE
+
 from .._types import Stance
 
 AnalysisOutput = tuple[Stance, float | None]
@@ -29,9 +30,9 @@ class StanceAnalyzer(Protocol):
         """
         ...
 
-    def analyze_multiple(
-        self, entries: list[tuple[str, str]], batch_size: int = 8
-    ) -> ResultE[list[AnalysisOutput]]:
+    def batched_analysis(
+        self, tasks: list[tuple[str, str]], batch_size: int = 8
+    ) -> list[ResultE[AnalysisOutput]]:
         """
         Analyze multiple `(text, target)` pairs in batches and return results in order.
 

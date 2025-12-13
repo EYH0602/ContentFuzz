@@ -1,6 +1,7 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-from returns.result import safe
 import torch
+from returns.result import ResultE, Success, safe
+from tqdm import tqdm
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from .._types import Stance
 from ._base import AnalysisOutput
@@ -83,16 +84,15 @@ class Encoder:
 
         return stance, prob
 
-    @safe
-    def analyze_multiple(
-        self, entries: list[tuple[str, str]], batch_size: int = 8
-    ) -> list[AnalysisOutput]:
+    def batched_analysis(
+        self, tasks: list[tuple[str, str]], batch_size: int = 8
+    ) -> list[ResultE[AnalysisOutput]]:
         """Batch analysis for multiple `(text, target)` pairs."""
-        results: list[AnalysisOutput] = []
+        results: list[ResultE[AnalysisOutput]] = []
         id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
 
-        for start in range(0, len(entries), batch_size):
-            chunk = entries[start : start + batch_size]
+        for start in tqdm(range(0, len(tasks), batch_size)):
+            chunk = tasks[start : start + batch_size]
             prompts = [to_prompt(text, target) for text, target in chunk]
             batch = self._tokenizer(
                 prompts,
@@ -117,7 +117,7 @@ class Encoder:
                     label = id2label.get(idx, "")
                     stance = _label_to_stance(label) or "Neutral"
 
-                results.append((stance, prob))
+                results.append(Success((stance, prob)))
 
         return results
 

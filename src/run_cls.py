@@ -7,26 +7,26 @@ from typing import get_args
 import pandas as pd
 
 from contentfuzz.cls import (
+    COLA,
+    Analyzer,
+    Encoder,
     StanceAnalyzer,
     ZeroshotAnalyzer,
-    COLA,
-    Encoder,
-    Analyzer,
-)
-from contentfuzz.stance_dataset import (
-    StanceDataset,
-    Dataset,
-    load_c_stance,
-    load_sem16,
-    load_vast,
-    DatasetLangMap,
 )
 from contentfuzz.evaluate import (
     EvalMetrics,
     compute_metrics,
     print_eval_metrics,
 )
-from contentfuzz.run import run_generation
+from contentfuzz.run import run_batch_generation, run_generation
+from contentfuzz.stance_dataset import (
+    Dataset,
+    DatasetLangMap,
+    StanceDataset,
+    load_c_stance,
+    load_sem16,
+    load_vast,
+)
 from contentfuzz.utils import SEED, get_default_cls_output_path, get_skip_cnt
 
 
@@ -36,6 +36,7 @@ def main(
     model: str = "gemini-2.5-flash-lite",
     sample_n: int | None = None,
     output_result_path: str | None = None,
+    batch: int | None = None,
 ) -> None:
     """Main entry point to run Stance Analysis in ContentFuzz.
 
@@ -81,10 +82,19 @@ def main(
             analyzer = Encoder(model=model)
 
     logging.info(f"Running {analyzer.__class__.__name__} with {analyzer.model}.")
-    results = run_generation(
-        dataset,
-        analyzer,
-        output_result_path=output_result_path,
+    results = (
+        run_generation(
+            dataset,
+            analyzer,
+            output_result_path=output_result_path,
+        )
+        if batch is None
+        else run_batch_generation(
+            dataset,
+            analyzer,
+            batch_size=batch,
+            output_result_path=output_result_path,
+        )
     )
 
     eval_results: EvalMetrics = compute_metrics(pd.DataFrame(results))
@@ -130,6 +140,13 @@ if __name__ == "__main__":
             "results/{analyzer}+{model}+{dataset}.jsonl."
         ),
     )
+    parser.add_argument(
+        "-b",
+        "--batch",
+        dest="batch",
+        type=int,
+        help="If set, run generation in batches of the given size.",
+    )
     args = parser.parse_args()
     main(
         dataset_name=args.dataset_name,
@@ -137,4 +154,5 @@ if __name__ == "__main__":
         model=args.model,
         sample_n=args.sample_n,
         output_result_path=args.output_result_path,
+        batch=args.batch,
     )
