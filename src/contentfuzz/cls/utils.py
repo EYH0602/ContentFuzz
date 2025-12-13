@@ -17,11 +17,14 @@ from returns.result import safe
 from structured_logprobs import add_logprobs
 from tenacity import (
     retry,
+    retry_if_exception_type,
+    stop_after_attempt,
     wait_random_exponential,
 )
 
 from .._types import Stance, is_valid_stance
-from ..utils import SEED, exp_retry
+from ..env import MAX_RETRIES
+from ..utils import SEED, RetryExceptions, exp_retry
 from ._base import AnalysisOutput, ClassifierOutput
 
 
@@ -193,6 +196,8 @@ def classify_w_prob(
 @retry(
     reraise=True,
     wait=wait_random_exponential(max=60, multiplier=1),
+    stop=stop_after_attempt(MAX_RETRIES),
+    retry=retry_if_exception_type(RetryExceptions),
 )
 async def classify_w_prob_async(
     client: AsyncClient,

@@ -1,12 +1,21 @@
-from functools import wraps
-from typing import Callable, ParamSpec, TypeVar, Literal
 import os
+from functools import wraps
+from typing import Callable, Literal, ParamSpec, TypeVar
 
+from google.genai._interactions import (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
 from tenacity import (
     retry,
+    retry_if_exception_type,
+    stop_after_attempt,
     wait_random_exponential,
 )
 
+from .env import MAX_RETRIES
 
 # ISO 639-1 language code
 # https://en.wikipedia.org/wiki/ISO_639-1
@@ -15,6 +24,13 @@ Language = Literal["en", "zh"]
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+RetryExceptions = (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
 
 
 def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
@@ -25,7 +41,9 @@ def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
     @wraps(func)
     @retry(
         reraise=True,
-        wait=wait_random_exponential(min=10, max=60, multiplier=1),
+        wait=wait_random_exponential(max=60, multiplier=1),
+        retry=retry_if_exception_type(RetryExceptions),
+        stop=stop_after_attempt(MAX_RETRIES),
     )
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         return func(*args, **kwargs)

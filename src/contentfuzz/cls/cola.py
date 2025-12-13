@@ -15,10 +15,13 @@ from returns.io import IOResultE
 from returns.result import ResultE
 from tenacity import (
     retry,
+    retry_if_exception_type,
+    stop_after_attempt,
     wait_random_exponential,
 )
 
-from ..utils import Language
+from ..env import MAX_RETRIES
+from ..utils import Language, RetryExceptions
 from ._base import AnalysisOutput
 from ._cola_prompts import (
     PROMPT_SETS,
@@ -69,6 +72,8 @@ class COLA:
     @retry(
         reraise=True,
         wait=wait_random_exponential(max=60, multiplier=1),
+        retry=retry_if_exception_type(RetryExceptions),
+        stop=stop_after_attempt(MAX_RETRIES),
     )
     async def get_completion_with_role(
         self, role: str, instruction: str, tweet: str, async_client: AsyncClient
@@ -125,6 +130,8 @@ class COLA:
     @retry(
         reraise=True,
         wait=wait_random_exponential(max=60, multiplier=1),
+        stop=stop_after_attempt(MAX_RETRIES),
+        retry=retry_if_exception_type(RetryExceptions),
     )
     async def get_completion(self, prompt: str, async_client: AsyncClient) -> str:
         """Get completion from OpenAI API.
