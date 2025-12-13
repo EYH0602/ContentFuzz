@@ -38,7 +38,8 @@ def run_batch_generation(
         output_result_path (str | None, optional): path to the output result file (JSONL).
             Defaults to None.
             If None, the file will be named `out_<analyzer_class_name>.jsonl`
-        batch_size (int, optional): Number of samples to process together. Defaults to 8.
+        batch_size (int, optional): Number of samples to process together. Defaults to None.
+            If None, the default behavior of the analyzer will be used.
 
     Returns:
         list[GenResult]: List of generation results
