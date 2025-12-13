@@ -18,7 +18,7 @@ from contentfuzz.evaluate import (
     compute_metrics,
     print_eval_metrics,
 )
-from contentfuzz.run import run_batch_generation, run_generation
+from contentfuzz.run import run_batch_generation
 from contentfuzz.stance_dataset import (
     Dataset,
     DatasetLangMap,

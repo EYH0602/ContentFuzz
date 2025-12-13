@@ -2,7 +2,6 @@ import asyncio
 
 from google.genai.client import AsyncClient
 from returns.result import ResultE, Success
-from tqdm import tqdm
 
 from ._base import AnalysisOutput
 from .utils import classify_w_prob, classify_w_prob_async, get_vertexai_client

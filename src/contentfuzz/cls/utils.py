@@ -16,7 +16,6 @@ from returns.result import safe
 from structured_logprobs import add_logprobs
 from tenacity import (
     retry,
-    stop_after_attempt,
     wait_random_exponential,
 )
 

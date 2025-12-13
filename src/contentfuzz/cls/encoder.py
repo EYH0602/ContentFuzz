@@ -1,6 +1,5 @@
 import torch
 from returns.result import ResultE, Success, safe
-from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from .._types import Stance
