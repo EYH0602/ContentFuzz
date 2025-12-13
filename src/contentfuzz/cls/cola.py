@@ -326,7 +326,8 @@ class COLA:
                     return result._inner_value
 
             try:
-                return await asyncio.gather(*(run_task(task) for task in tasks))
+                all_results = await asyncio.gather(*(run_task(task) for task in tasks))
+                return all_results
             finally:
                 await async_client.aclose()
 
