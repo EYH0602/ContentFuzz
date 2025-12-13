@@ -3,7 +3,6 @@ from returns.result import Failure, ResultE
 from ._base import AnalysisOutput
 from .utils import classify_w_prob, get_vertexai_client
 
-
 INSTRUCTION = """
 You are a precise stance classifier.
 Decide whether the author's attitude is Favor / Against / Neutral towards the target {target}.
@@ -29,10 +28,8 @@ class ZeroshotAnalyzer:
             text,
         )
 
-    def analyze_multiple(
-        self, entries: list[tuple[str, str]], batch_size: int = 8
-    ) -> ResultE[list[AnalysisOutput]]:
+    def batched_analysis(
+        self, tasks: list[tuple[str, str]], batch_size: int = 8
+    ) -> list[ResultE[AnalysisOutput]]:
         """Batch mode is not yet supported for ZeroshotAnalyzer."""
-        return Failure(
-            NotImplementedError("Batch analysis not implemented for ZeroshotAnalyzer")
-        )
+        return []
