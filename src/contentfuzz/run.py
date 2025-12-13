@@ -57,8 +57,8 @@ def run_batch_generation(
             "confidence": 0.0,
         }
         match result:
-            case Success((result, prob)):
-                log_obj["predicted"] = result
+            case Success((predicted_stance, prob)):
+                log_obj["predicted"] = predicted_stance
                 log_obj["confidence"] = prob
             case Failure(_ as e):
                 logging.error(f"Error analyzing text: {e}")
