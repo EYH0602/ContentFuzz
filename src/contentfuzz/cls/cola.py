@@ -7,7 +7,7 @@ from google.genai.types import (
     GenerateContentConfig,
     ThinkingConfig,
 )
-from returns.result import Failure, Result, ResultE, safe
+from returns.result import Result, ResultE, safe
 
 from ..utils import Language, exp_retry
 from ._base import AnalysisOutput

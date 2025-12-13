@@ -1,7 +1,11 @@
-from returns.result import Failure, ResultE
+import asyncio
+from multiprocessing import cpu_count
+
+from returns.result import ResultE, Success
+from tqdm import tqdm
 
 from ._base import AnalysisOutput
-from .utils import classify_w_prob, get_vertexai_client
+from .utils import classify_w_prob, classify_w_prob_async, get_vertexai_client
 
 INSTRUCTION = """
 You are a precise stance classifier.
@@ -18,6 +22,7 @@ class ZeroshotAnalyzer:
         # self.model, self.client = _get_model_and_client(model)
         self.model = model
         self.client = get_vertexai_client()
+        self.async_client = self.client.aio
 
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using OpenAI API to analyze the stance of a given text"""
@@ -28,8 +33,38 @@ class ZeroshotAnalyzer:
             text,
         )
 
+    async def _run_async_analysis(self, tasks: list[tuple[str, str]]):
+        sem = asyncio.Semaphore(cpu_count())
+
+        async def handle_task(task: tuple[str, str]) -> AnalysisOutput:
+            text, target = task
+            async with sem:
+                return await classify_w_prob_async(
+                    self.async_client,
+                    self.model,
+                    INSTRUCTION.format(target=target),
+                    text,
+                )
+
+        # Filter first so we know total for tqdm
+        coros = [handle_task(t) for t in tasks]
+        results = []
+
+        # Progress bar over completion of coroutines
+        for coro in tqdm(asyncio.as_completed(coros), total=len(coros)):
+            r = await coro
+            results.append(r)
+
+        return results
+
     def batched_analysis(
         self, tasks: list[tuple[str, str]], batch_size: int = 8
     ) -> list[ResultE[AnalysisOutput]]:
         """Batch mode is not yet supported for ZeroshotAnalyzer."""
-        return []
+
+        results: list[ResultE[AnalysisOutput]] = []
+        for start in tqdm(range(0, len(tasks), batch_size)):
+            batch_tasks = tasks[start : start + batch_size]
+            batch_results = asyncio.run(self._run_async_analysis(batch_tasks))
+            results.extend([Success(b) for b in batch_results])
+        return results
