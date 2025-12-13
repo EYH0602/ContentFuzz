@@ -1,5 +1,6 @@
 from typing import Protocol, runtime_checkable
 
+from deprecated import deprecated
 from pydantic import BaseModel
 from returns.result import ResultE
 
@@ -20,6 +21,7 @@ class StanceAnalyzer(Protocol):
 
     model: str
 
+    @deprecated("Use `batched_analysis` with batch_size=1 instead")
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """
         Analyze the given text and return the analysis output.

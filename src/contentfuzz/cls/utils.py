@@ -12,13 +12,13 @@ from google.genai.types import (
     ThinkingConfig,
 )
 from openai import OpenAI
+from returns.future import future_safe
 from returns.result import safe
 from structured_logprobs import add_logprobs
 from tenacity import (
     retry,
     wait_random_exponential,
 )
-
 
 from .._types import Stance, is_valid_stance
 from ..utils import SEED, exp_retry
@@ -189,6 +189,7 @@ def classify_w_prob(
     return stance, _parse_gemini_prob(candidate)
 
 
+@future_safe
 @retry(
     reraise=True,
     wait=wait_random_exponential(max=60, multiplier=1),

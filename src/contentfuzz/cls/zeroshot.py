@@ -1,7 +1,8 @@
 import asyncio
 
+from deprecated import deprecated
 from google.genai.client import AsyncClient
-from returns.result import ResultE, Success
+from returns.result import ResultE
 
 from ._base import AnalysisOutput
 from .utils import classify_w_prob, classify_w_prob_async, get_vertexai_client
@@ -25,6 +26,7 @@ class ZeroshotAnalyzer:
         self.model = model
         self.client = get_vertexai_client()
 
+    @deprecated("Use `batched_analysis` with batch_size=1 instead")
     def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using OpenAI API to analyze the stance of a given text"""
         return classify_w_prob(
@@ -39,10 +41,10 @@ class ZeroshotAnalyzer:
         tasks: list[tuple[str, str]],
         async_client: AsyncClient,
         batch_size: int | None = None,
-    ) -> list[AnalysisOutput]:
+    ) -> list[ResultE[AnalysisOutput]]:
         sem = asyncio.Semaphore(batch_size if batch_size is not None else len(tasks))
 
-        async def handle_task(task: tuple[str, str]) -> AnalysisOutput:
+        async def handle_task(task: tuple[str, str]) -> ResultE[AnalysisOutput]:
             text, target = task
             async with sem:
                 result = await classify_w_prob_async(
@@ -51,7 +53,7 @@ class ZeroshotAnalyzer:
                     INSTRUCTION.format(target=target),
                     text,
                 )
-                return result
+                return result._inner_value
 
         results = await asyncio.gather(*(handle_task(t) for t in tasks))
         return results
@@ -68,7 +70,7 @@ class ZeroshotAnalyzer:
             list[ResultE[AnalysisOutput]]: List of analysis results in order
         """
 
-        async def _run_batches() -> list[AnalysisOutput]:
+        async def _run_batches() -> list[ResultE[AnalysisOutput]]:
             # Use one async client for the whole run to avoid re-inits.
             async_client = self.client.aio
             try:
@@ -76,5 +78,5 @@ class ZeroshotAnalyzer:
             finally:
                 await async_client.aclose()
 
-        batch_outputs = asyncio.run(_run_batches())
-        return [Success(output) for output in batch_outputs]
+        outputs = asyncio.run(_run_batches())
+        return outputs
