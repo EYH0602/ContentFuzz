@@ -39,9 +39,9 @@ class ZeroshotAnalyzer:
         self,
         tasks: list[tuple[str, str]],
         async_client: AsyncClient,
-        batch_size: int,
+        batch_size: int | None = None,
     ) -> list[AnalysisOutput]:
-        sem = asyncio.Semaphore(batch_size)
+        sem = asyncio.Semaphore(batch_size if batch_size is not None else len(tasks))
 
         async def handle_task(task: tuple[str, str]) -> AnalysisOutput:
             text, target = task
@@ -58,12 +58,13 @@ class ZeroshotAnalyzer:
         return results
 
     def batched_analysis(
-        self, tasks: list[tuple[str, str]], batch_size: int = 1
+        self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
         """Run async zero-shot analysis in batches using a single event loop.
         Args:
             tasks (list[tuple[str, str]]): List of (text, target) pairs
-            batch_size (int, optional): Number of samples to process concurrently. Defaults to 1.
+            batch_size (int, optional): Number of samples to process concurrently. Defaults to None.
+                If None, processes all samples concurrently, and let retry handle rate limits.
         Returns:
             list[ResultE[AnalysisOutput]]: List of analysis results in order
         """

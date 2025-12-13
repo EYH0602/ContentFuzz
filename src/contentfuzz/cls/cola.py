@@ -257,7 +257,7 @@ class COLA:
         )
 
     def batched_analysis(
-        self, tasks: list[tuple[str, str]], batch_size: int = 8
+        self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
         """Batch mode is not yet supported for COLA."""
         return []

@@ -85,13 +85,14 @@ class Encoder:
         return stance, prob
 
     def batched_analysis(
-        self, tasks: list[tuple[str, str]], batch_size: int = 8
+        self, tasks: list[tuple[str, str]], batch_size: int | None = 8
     ) -> list[ResultE[AnalysisOutput]]:
         """Batch analysis for multiple `(text, target)` pairs."""
         results: list[ResultE[AnalysisOutput]] = []
         id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
-
-        for start in tqdm(range(0, len(tasks), batch_size)):
+        if batch_size is None:
+            batch_size = len(tasks)
+        for start in range(0, len(tasks), batch_size):
             chunk = tasks[start : start + batch_size]
             prompts = [to_prompt(text, target) for text, target in chunk]
             batch = self._tokenizer(
