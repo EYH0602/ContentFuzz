@@ -11,7 +11,6 @@ from google.genai.types import (
     ThinkingConfig,
 )
 from returns.future import FutureResult, FutureResultE, future_safe
-from returns.io import IOResultE
 from returns.result import ResultE
 from tenacity import (
     retry,

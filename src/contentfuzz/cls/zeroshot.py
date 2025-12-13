@@ -1,6 +1,5 @@
 import asyncio
 
-from google.genai.client import AsyncClient
 from returns.result import ResultE
 
 from ._base import AnalysisOutput
