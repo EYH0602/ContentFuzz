@@ -195,12 +195,12 @@ class COLA:
         )
         return self.get_completion(prompt)
 
-    def final_judgement(
+    def final_judgment(
         self, tweet: str, favor_response: str, against_response: str, target: str
     ) -> ResultE[AnalysisOutput]:
         """
         By the COLA authors:
-        This is an example of a prompt for the final judgement stage.
+        This is an example of a prompt for the final judgment stage.
         Most of the time, this prompt can be used directly.
         For some targets, it needs to include a more detailed explanation of the task
         to achieve the performance reported in our paper.
@@ -245,8 +245,8 @@ class COLA:
                 target,
                 "against",
             )
-            # Step 5: Final judgement
-            for final_response in self.final_judgement(
+            # Step 5: Final judgment
+            for final_response in self.final_judgment(
                 tweet,
                 favor_response,
                 against_response,
