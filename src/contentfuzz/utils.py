@@ -26,8 +26,7 @@ def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
     @wraps(func)
     @retry(
         reraise=True,
-        wait=wait_random_exponential(min=10, max=30),
-        stop=stop_after_attempt(3),
+        wait=wait_random_exponential(min=10, max=60, multiplier=1),
     )
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         return func(*args, **kwargs)
