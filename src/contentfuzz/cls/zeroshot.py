@@ -39,9 +39,9 @@ class ZeroshotAnalyzer:
         self,
         tasks: list[tuple[str, str]],
         async_client: AsyncClient,
-    ):
-        max_concurrent_requests = max(1, len(tasks))
-        sem = asyncio.Semaphore(max_concurrent_requests)
+        batch_size: int,
+    ) -> list[AnalysisOutput]:
+        sem = asyncio.Semaphore(batch_size)
 
         async def handle_task(task: tuple[str, str]) -> AnalysisOutput:
             text, target = task
@@ -71,14 +71,8 @@ class ZeroshotAnalyzer:
         async def _run_batches() -> list[AnalysisOutput]:
             # Use one async client for the whole run to avoid re-inits.
             async_client = self.client.aio
-            batch_outputs: list[AnalysisOutput] = []
             try:
-                for start in tqdm(range(0, len(tasks), batch_size)):
-                    batch_tasks = tasks[start : start + batch_size]
-                    batch_outputs.extend(
-                        await self._run_async_analysis(batch_tasks, async_client)
-                    )
-                return batch_outputs
+                return await self._run_async_analysis(tasks, async_client, batch_size)
             finally:
                 await async_client.aclose()
 
