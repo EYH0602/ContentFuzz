@@ -56,7 +56,7 @@ def run_batch_generation(
     dataset: StanceDataset,
     analyzer: StanceAnalyzer,
     output_result_path: str | None = None,
-    batch_size: int = 8,
+    batch_size: int | None = None,
 ) -> list[GenResult]:
     """run generation experiments
 

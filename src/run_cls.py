@@ -36,7 +36,7 @@ def main(
     model: str = "gemini-2.5-flash-lite",
     sample_n: int | None = None,
     output_result_path: str | None = None,
-    batch: int | None = None,
+    batch: int = 1,
 ) -> None:
     """Main entry point to run Stance Analysis in ContentFuzz.
 
@@ -82,19 +82,11 @@ def main(
             analyzer = Encoder(model=model)
 
     logging.info(f"Running {analyzer.__class__.__name__} with {analyzer.model}.")
-    results = (
-        run_generation(
-            dataset,
-            analyzer,
-            output_result_path=output_result_path,
-        )
-        if batch is None
-        else run_batch_generation(
-            dataset,
-            analyzer,
-            batch_size=batch,
-            output_result_path=output_result_path,
-        )
+    results = run_batch_generation(
+        dataset,
+        analyzer,
+        batch_size=batch,
+        output_result_path=output_result_path,
     )
 
     eval_results: EvalMetrics = compute_metrics(pd.DataFrame(results))
@@ -145,6 +137,7 @@ if __name__ == "__main__":
         "--batch",
         dest="batch",
         type=int,
+        default=1,
         help="If set, run generation in batches of the given size.",
     )
     args = parser.parse_args()
