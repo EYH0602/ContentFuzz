@@ -1,11 +1,10 @@
 import asyncio
 
-from deprecated import deprecated
 from google.genai.client import AsyncClient
 from returns.result import ResultE
 
 from ._base import AnalysisOutput
-from .utils import classify_w_prob, classify_w_prob_async, get_vertexai_client
+from .utils import classify_w_prob_async, get_vertexai_client
 
 INSTRUCTION = """
 You are a precise stance classifier.
@@ -25,16 +24,6 @@ class ZeroshotAnalyzer:
         # self.model, self.client = _get_model_and_client(model)
         self.model = model
         self.client = get_vertexai_client()
-
-    @deprecated("Use `batched_analysis` with batch_size=1 instead")
-    def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
-        """Using OpenAI API to analyze the stance of a given text"""
-        return classify_w_prob(
-            self.client,
-            self.model,
-            INSTRUCTION.format(target=target),
-            text,
-        )
 
     async def _run_async_analysis(
         self,
@@ -58,7 +47,7 @@ class ZeroshotAnalyzer:
         results = await asyncio.gather(*(handle_task(t) for t in tasks))
         return results
 
-    def batched_analysis(
+    def analyze(
         self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
         """Run async zero-shot analysis in batches using a single event loop.

@@ -217,11 +217,9 @@ class COLA:
 
         return classify_w_prob(self.client, self.model, None, prompt)
 
-    def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
-        """Using COLA to analyze the stance of a given text"""
-
+    def _analyze_single(self, text: str, target: str) -> ResultE[AnalysisOutput]:
+        """Run the full COLA pipeline for a single `(text, target)` pair."""
         tweet = text
-
         return Result.do(
             final_response
             # Step 1: Linguist analysis
@@ -256,8 +254,8 @@ class COLA:
             )
         )
 
-    def batched_analysis(
+    def analyze(
         self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
-        """Batch mode is not yet supported for COLA."""
-        return []
+        """Process tasks sequentially. COLA does not support true batching."""
+        return [self._analyze_single(text, target) for text, target in tasks]

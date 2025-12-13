@@ -1,5 +1,5 @@
 import torch
-from returns.result import ResultE, Success, safe
+from returns.result import ResultE, Success
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from .._types import Stance
@@ -41,49 +41,7 @@ class Encoder:
                 if stance is not None:
                     self._id2stance[idx] = stance
 
-    @safe
-    def analyze(self, text: str, target: str) -> AnalysisOutput:
-        """Run a forward pass and return stance with probability.
-
-        - Tokenizes `(text, target)` as a sentence pair for the finetuned
-          sequence classification head.
-        - Applies softmax to logits and selects the top label, mapped to
-          `Stance` when possible.
-        - Returns a tuple `(stance, probability)` where probability is the
-          model's softmax score for the chosen stance.
-
-        Note: this method is decorated with `@safe`, so callers receive a
-        `Result` wrapping the output or an exception.
-        """
-        # Tokenize as a sentence pair for stance classification
-        # tokenization setting is the same as fine-tuning
-        batch = self._tokenizer(
-            to_prompt(text, target),
-            truncation=True,
-            padding="max_length",
-            max_length=512,
-            return_tensors="pt",
-        )
-        batch = {key: value.to(self._device) for key, value in batch.items()}
-
-        with torch.no_grad():
-            outputs = self._model(**batch)
-            logits = outputs.logits[0]
-            probs = torch.softmax(logits, dim=-1)
-            idx = int(torch.argmax(probs).item())
-            prob = float(probs[idx].item())
-
-        # Resolve stance label
-        stance: Stance | None = self._id2stance.get(idx)
-        if stance is None:
-            # Fall back to interpreting label string if available
-            id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
-            label = id2label.get(idx, "")
-            stance = _label_to_stance(label) or "Neutral"
-
-        return stance, prob
-
-    def batched_analysis(
+    def analyze(
         self, tasks: list[tuple[str, str]], batch_size: int | None = 8
     ) -> list[ResultE[AnalysisOutput]]:
         """Batch analysis for multiple `(text, target)` pairs."""
