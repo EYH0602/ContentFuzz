@@ -298,11 +298,19 @@ class COLA:
     def analyze(
         self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
-        """Process tasks sequentially. COLA does not support true batching."""
+        """Run async COLA analysis in batches using a single event loop.
+        Args:
+            tasks (list[tuple[str, str]]): List of (text, target) pairs
+            batch_size (int, optional): Number of samples to process concurrently. Defaults to None.
+                If None, processes all samples concurrently, and let retry handle rate limits.
+        Returns:
+            list[ResultE[AnalysisOutput]]: List of analysis results in order
+        """
 
         async def _run_batches() -> list[IOResultE[AnalysisOutput]]:
             async_client = self.client.aio
             sem = asyncio.Semaphore(batch_size or len(tasks))
+
             # Use one async client for the whole run to avoid re-inits.
             async def run_with_semaphore(task):
                 async with sem:
