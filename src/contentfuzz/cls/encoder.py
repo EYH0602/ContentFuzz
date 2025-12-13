@@ -83,6 +83,44 @@ class Encoder:
 
         return stance, prob
 
+    @safe
+    def analyze_multiple(
+        self, entries: list[tuple[str, str]], batch_size: int = 8
+    ) -> list[AnalysisOutput]:
+        """Batch analysis for multiple `(text, target)` pairs."""
+        results: list[AnalysisOutput] = []
+        id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
+
+        for start in range(0, len(entries), batch_size):
+            chunk = entries[start : start + batch_size]
+            prompts = [to_prompt(text, target) for text, target in chunk]
+            batch = self._tokenizer(
+                prompts,
+                truncation=True,
+                padding="max_length",
+                max_length=512,
+                return_tensors="pt",
+            )
+            batch = {key: value.to(self._device) for key, value in batch.items()}
+
+            with torch.no_grad():
+                logits = self._model(**batch).logits
+                probs = torch.softmax(logits, dim=-1)
+                top_probs, top_indices = torch.max(probs, dim=-1)
+
+            for idx_tensor, prob_tensor in zip(top_indices, top_probs):
+                idx = int(idx_tensor.item())
+                prob = float(prob_tensor.item())
+
+                stance: Stance | None = self._id2stance.get(idx)
+                if stance is None:
+                    label = id2label.get(idx, "")
+                    stance = _label_to_stance(label) or "Neutral"
+
+                results.append((stance, prob))
+
+        return results
+
 
 def _label_to_stance(label: str) -> Stance | None:
     """Map model label names to Stance values by simple heuristics.
