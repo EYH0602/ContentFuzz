@@ -25,35 +25,14 @@ class ZeroshotAnalyzer:
         self.model = model
         self.client = get_vertexai_client()
 
-    async def _run_async_analysis(
-        self,
-        tasks: list[tuple[str, str]],
-        async_client: AsyncClient,
-        batch_size: int | None = None,
-    ) -> list[ResultE[AnalysisOutput]]:
-        sem = asyncio.Semaphore(batch_size if batch_size is not None else len(tasks))
-
-        async def handle_task(task: tuple[str, str]) -> ResultE[AnalysisOutput]:
-            text, target = task
-            async with sem:
-                result = await classify_w_prob_async(
-                    async_client,
-                    self.model,
-                    INSTRUCTION.format(target=target),
-                    text,
-                )
-                return result._inner_value
-
-        results = await asyncio.gather(*(handle_task(t) for t in tasks))
-        return results
-
     def analyze(
         self, tasks: list[tuple[str, str]], batch_size: int | None = None
     ) -> list[ResultE[AnalysisOutput]]:
         """Run async zero-shot analysis in batches using a single event loop.
         Args:
             tasks (list[tuple[str, str]]): List of (text, target) pairs
-            batch_size (int, optional): Number of samples to process concurrently. Defaults to None.
+            batch_size (int, optional): Number of samples to process concurrently.
+                Defaults to None.
                 If None, processes all samples concurrently, and let retry handle rate limits.
         Returns:
             list[ResultE[AnalysisOutput]]: List of analysis results in order
@@ -62,10 +41,23 @@ class ZeroshotAnalyzer:
         async def _run_batches() -> list[ResultE[AnalysisOutput]]:
             # Use one async client for the whole run to avoid re-inits.
             async_client = self.client.aio
+            sem = asyncio.Semaphore(batch_size or len(tasks))
+
+            # Use one async client for the whole run to avoid re-inits.
+            async def run_task(task):
+                text, target = task
+                async with sem:
+                    result = await classify_w_prob_async(
+                        async_client,
+                        self.model,
+                        INSTRUCTION.format(target=target),
+                        text,
+                    )
+                    return result._inner_value
+
             try:
-                return await self._run_async_analysis(tasks, async_client, batch_size)
+                return await asyncio.gather(*(run_task(task) for task in tasks))
             finally:
                 await async_client.aclose()
 
-        outputs = asyncio.run(_run_batches())
-        return outputs
+        return asyncio.run(_run_batches())

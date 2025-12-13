@@ -308,28 +308,27 @@ class COLA:
         """Run async COLA analysis in batches using a single event loop.
         Args:
             tasks (list[tuple[str, str]]): List of (text, target) pairs
-            batch_size (int, optional): Number of samples to process concurrently. Defaults to None.
+            batch_size (int, optional): Number of samples to process concurrently.
+                Defaults to None.
                 If None, processes all samples concurrently, and let retry handle rate limits.
         Returns:
             list[ResultE[AnalysisOutput]]: List of analysis results in order
         """
 
-        async def _run_batches() -> list[IOResultE[AnalysisOutput]]:
+        async def _run_batches() -> list[ResultE[AnalysisOutput]]:
             async_client = self.client.aio
             sem = asyncio.Semaphore(batch_size or len(tasks))
 
             # Use one async client for the whole run to avoid re-inits.
-            async def run_with_semaphore(task):
+            async def run_task(task):
+                text, target = task
                 async with sem:
-                    return await self._analyze_single(task[0], task[1], async_client)
+                    result = await self._analyze_single(text, target, async_client)
+                    return result._inner_value
 
             try:
-                result = await asyncio.gather(
-                    *(run_with_semaphore(task) for task in tasks)
-                )
-                return result
+                return await asyncio.gather(*(run_task(task) for task in tasks))
             finally:
                 await async_client.aclose()
 
-        outputs = asyncio.run(_run_batches())
-        return [o._inner_value for o in outputs]
+        return asyncio.run(_run_batches())
