@@ -1,3 +1,6 @@
+from returns.result import Failure, ResultE
+
+from ._base import AnalysisOutput
 from .utils import classify_w_prob, get_vertexai_client
 
 
@@ -17,11 +20,19 @@ class ZeroshotAnalyzer:
         self.model = model
         self.client = get_vertexai_client()
 
-    def analyze(self, text: str, target: str):
+    def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
         """Using OpenAI API to analyze the stance of a given text"""
         return classify_w_prob(
             self.client,
             self.model,
             INSTRUCTION.format(target=target),
             text,
+        )
+
+    def analyze_multiple(
+        self, entries: list[tuple[str, str]], batch_size: int = 8
+    ) -> ResultE[list[AnalysisOutput]]:
+        """Batch mode is not yet supported for ZeroshotAnalyzer."""
+        return Failure(
+            NotImplementedError("Batch analysis not implemented for ZeroshotAnalyzer")
         )

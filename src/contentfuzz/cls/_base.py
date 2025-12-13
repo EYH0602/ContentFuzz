@@ -28,3 +28,15 @@ class StanceAnalyzer(Protocol):
             target (str): The target entity to analyze the text against.
         """
         ...
+
+    def analyze_multiple(
+        self, entries: list[tuple[str, str]], batch_size: int = 8
+    ) -> ResultE[list[AnalysisOutput]]:
+        """
+        Analyze multiple `(text, target)` pairs in batches and return results in order.
+
+        Args:
+            entries (list[tuple[str, str]]): List of (text, target) pairs.
+            batch_size (int): Number of pairs to process together. Defaults to 8.
+        """
+        ...

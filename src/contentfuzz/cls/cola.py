@@ -7,7 +7,7 @@ from google.genai.types import (
     GenerateContentConfig,
     ThinkingConfig,
 )
-from returns.result import Result, ResultE, safe
+from returns.result import Failure, Result, ResultE, safe
 
 from ..utils import Language, exp_retry
 from ._base import AnalysisOutput
@@ -254,4 +254,12 @@ class COLA:
                 against_response,
                 target,
             )
+        )
+
+    def analyze_multiple(
+        self, entries: list[tuple[str, str]], batch_size: int = 8
+    ) -> ResultE[list[AnalysisOutput]]:
+        """Batch mode is not yet supported for COLA."""
+        return Failure(
+            NotImplementedError("Batch analysis not implemented for COLA analyzer")
         )
