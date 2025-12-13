@@ -1,9 +1,8 @@
 import logging
 
+from deprecated import deprecated
 from orjsonl import orjsonl
 from returns.result import Failure, Success
-from tqdm import tqdm
-from deprecated import deprecated
 
 from .cls import StanceAnalyzer
 from .evaluate import GenResult
@@ -16,42 +15,13 @@ def run_generation(
     analyzer: StanceAnalyzer,
     output_result_path: str | None = None,
 ) -> list[GenResult]:
-    """run generation experiments
-
-    Args:
-        dataset (StanceDataset): dataset with columns ["text", "stance", "target"]
-        analyzer (StanceAnalyzer): the classification analyzer to use
-        output_result_path (str | None, optional): path to the output result file (JSONL).
-            Defaults to None.
-            If None, the file will be named `out_<analyzer_class_name>.jsonl`
-
-    Returns:
-        list[GenResult]: List of generation results
-    """
-
-    if output_result_path is None:
-        output_result_path = f"out_{analyzer.__class__.__name__}.jsonl"
-
-    results: list[GenResult] = []
-
-    for row in tqdm(dataset):
-        text = row["text"]
-        target = row["target"]
-        log_obj: GenResult = {
-            "truth": row["stance"],
-            "predicted": "error",  # in case analyze failed
-            "confidence": 0.0,
-        }
-        match analyzer.analyze(text, target=target):
-            case Success((result, prob)):
-                log_obj["predicted"] = result
-                log_obj["confidence"] = prob
-            case Failure(_ as e):
-                logging.error(f"Error analyzing text: {e}")
-
-        results.append(log_obj)
-        orjsonl.append(output_result_path, log_obj)
-    return results
+    """Legacy wrapper calling `run_batch_generation` with `batch_size=1`."""
+    return run_batch_generation(
+        dataset,
+        analyzer,
+        output_result_path=output_result_path,
+        batch_size=1,
+    )
 
 
 def run_batch_generation(
@@ -79,7 +49,7 @@ def run_batch_generation(
 
     results: list[GenResult] = []
     tasks = [(row["text"], row["target"]) for row in dataset]
-    cls_results = analyzer.batched_analysis(tasks, batch_size=batch_size)
+    cls_results = analyzer.analyze(tasks, batch_size=batch_size)
     for row, result in zip(dataset, cls_results):
         log_obj: GenResult = {
             "truth": row["stance"],
