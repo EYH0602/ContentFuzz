@@ -14,6 +14,12 @@ from google.genai.types import (
 from openai import OpenAI
 from returns.result import safe
 from structured_logprobs import add_logprobs
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)
+
 
 from .._types import Stance, is_valid_stance
 from ..utils import SEED, exp_retry
@@ -184,6 +190,10 @@ def classify_w_prob(
     return stance, _parse_gemini_prob(candidate)
 
 
+@retry(
+    reraise=True,
+    wait=wait_random_exponential(max=60, multiplier=1),
+)
 async def classify_w_prob_async(
     client: AsyncClient,
     model: str,
