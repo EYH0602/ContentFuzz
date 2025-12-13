@@ -16,13 +16,15 @@ def parse_dataset_from_filename(filename: str) -> Dataset:
     file_name = os.path.splitext(base_name)[0]
     cls_id = file_name.split("=")[0]
     dataset = cls_id.split("+")[-1]
-    assert is_dataset(
-        dataset
-    ), f"Could not parse valid dataset from filename: {filename}"
+    assert is_dataset(dataset), (
+        f"Could not parse valid dataset from filename: {filename}"
+    )
     return dataset
 
 
-def main(results_file: str, sample_n: int | None = None) -> None:
+def main(
+    results_file: str, sample_n: int | None = None, dataset: Dataset | None = None
+) -> None:
     """run evaluation on the saved JSONL generation results file"""
 
     df = load_gen_results(results_file)
@@ -31,10 +33,12 @@ def main(results_file: str, sample_n: int | None = None) -> None:
         random.seed(SEED)
         df = df.sample(sample_n, random_state=SEED)
 
-    dataset_name = parse_dataset_from_filename(results_file)
+    if dataset is None:
+        dataset = parse_dataset_from_filename(results_file)
+
     metrics = compute_fuzz_metrics(
         df,
-        lang=DatasetLangMap[dataset_name],
+        lang=DatasetLangMap[dataset],
         include_bertscore=True,
         include_perplexity=True,
         include_mauve=True,
@@ -57,6 +61,14 @@ if __name__ == "__main__":
         default=None,
         help="Optional number of dataset rows to sample before running.",
     )
+    parser.add_argument(
+        "-d",
+        "--dataset",
+        dest="dataset",
+        type=str,
+        default=None,
+        help="Optional dataset name to override parsing from filename.",
+    )
 
     args = parser.parse_args()
-    main(results_file=args.results_file, sample_n=args.sample_n)
+    main(results_file=args.results_file, sample_n=args.sample_n, dataset=args.dataset)
