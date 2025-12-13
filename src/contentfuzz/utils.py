@@ -2,7 +2,11 @@ from functools import wraps
 from typing import Callable, ParamSpec, TypeVar, Literal
 import os
 
-from tenacity import retry, stop_after_attempt, wait_random_exponential
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 
 # ISO 639-1 language code
@@ -22,7 +26,7 @@ def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
     @wraps(func)
     @retry(
         reraise=True,
-        wait=wait_random_exponential(min=1, max=10),
+        wait=wait_random_exponential(min=10, max=30),
         stop=stop_after_attempt(3),
     )
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
