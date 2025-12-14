@@ -1,18 +1,34 @@
 import logging
 
-from tqdm import tqdm
-from returns.result import Success, Failure
+from deprecated import deprecated
 from orjsonl import orjsonl
+from returns.result import Failure, Success
 
 from .cls import StanceAnalyzer
 from .evaluate import GenResult
 from .stance_dataset import StanceDataset
 
 
+@deprecated("Use `run_batch_generation` with `batch_size=1` instead.")
 def run_generation(
     dataset: StanceDataset,
     analyzer: StanceAnalyzer,
     output_result_path: str | None = None,
+) -> list[GenResult]:
+    """Legacy wrapper calling `run_batch_generation` with `batch_size=1`."""
+    return run_batch_generation(
+        dataset,
+        analyzer,
+        output_result_path=output_result_path,
+        batch_size=1,
+    )
+
+
+def run_batch_generation(
+    dataset: StanceDataset,
+    analyzer: StanceAnalyzer,
+    output_result_path: str | None = None,
+    batch_size: int | None = None,
 ) -> list[GenResult]:
     """run generation experiments
 
@@ -22,6 +38,8 @@ def run_generation(
         output_result_path (str | None, optional): path to the output result file (JSONL).
             Defaults to None.
             If None, the file will be named `out_<analyzer_class_name>.jsonl`
+        batch_size (int, optional): Number of samples to process together. Defaults to None.
+            If None, the default behavior of the analyzer will be used.
 
     Returns:
         list[GenResult]: List of generation results
@@ -31,18 +49,17 @@ def run_generation(
         output_result_path = f"out_{analyzer.__class__.__name__}.jsonl"
 
     results: list[GenResult] = []
-
-    for row in tqdm(dataset):
-        text = row["text"]
-        target = row["target"]
+    tasks = [(row["text"], row["target"]) for row in dataset]
+    cls_results = analyzer.analyze(tasks, batch_size=batch_size)
+    for row, result in zip(dataset, cls_results):
         log_obj: GenResult = {
             "truth": row["stance"],
             "predicted": "error",  # in case analyze failed
             "confidence": 0.0,
         }
-        match analyzer.analyze(text, target=target):
-            case Success((result, prob)):
-                log_obj["predicted"] = result
+        match result:
+            case Success((predicted_stance, prob)):
+                log_obj["predicted"] = predicted_stance
                 log_obj["confidence"] = prob
             case Failure(_ as e):
                 logging.error(f"Error analyzing text: {e}")

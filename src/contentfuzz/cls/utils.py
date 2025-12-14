@@ -1,22 +1,27 @@
-from typing import get_args
-from math import exp
 import os
+from math import exp
+from typing import get_args
 
-from openai import OpenAI
+from deprecated import deprecated
 from google import genai
+from google.genai.client import AsyncClient
 from google.genai.types import (
-    GenerateContentConfig,
     AutomaticFunctionCallingConfig,
-    ThinkingConfig,
+    GenerateContentConfig,
     HttpOptions,
+    ThinkingConfig,
 )
+from openai import OpenAI
+from returns.future import future_safe
 from returns.result import safe
 from structured_logprobs import add_logprobs
-from deprecated import deprecated
+from tenacity import (
+    retry,
+)
 
-from ._base import AnalysisOutput, ClassifierOutput
-from ..utils import exp_retry, SEED
 from .._types import Stance, is_valid_stance
+from ..utils import SEED, retry_kwargs
+from ._base import AnalysisOutput, ClassifierOutput
 
 
 @deprecated(reason="Use Google Gemini instead.")
@@ -49,7 +54,7 @@ def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str
 
 @deprecated(reason="Use Google Gemini instead.")
 @safe
-@exp_retry
+@retry(**retry_kwargs)
 def classify_w_prob_openai(
     client: OpenAI,
     model: str,
@@ -118,10 +123,8 @@ def get_vertexai_client() -> genai.Client:
         api_key=os.getenv("VERTEXAI_API_KEY"),
         http_options=HttpOptions(
             api_version="v1",
-            headers={
-                "X-Vertex-AI-LLM-Request-Type": "shared"
-            },
-        )
+            headers={"X-Vertex-AI-LLM-Request-Type": "shared"},
+        ),
     )
     return client
 
@@ -142,7 +145,7 @@ def _parse_gemini_prob(candidate) -> float | None:
 
 
 @safe
-@exp_retry
+@retry(**retry_kwargs)
 def classify_w_prob(
     client: genai.Client,
     model: str,
@@ -156,6 +159,52 @@ def classify_w_prob(
         "enum": get_args(Stance),
     }
     response = client.models.generate_content(
+        model=model,
+        contents=user_prompt,
+        config=GenerateContentConfig(
+            temperature=0,
+            system_instruction=system_prompt,
+            response_mime_type="text/x.enum",
+            response_schema=response_schema,
+            response_logprobs=True,
+            logprobs=1,
+            seed=SEED,
+            automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+            thinking_config=ThinkingConfig(
+                thinking_budget=0,  # disable thinking
+            ),
+        ),
+    )
+
+    if not response.candidates:
+        raise ValueError("Gemini API returned no candidates")
+
+    candidate = response.candidates[0]
+    stance = response.text
+
+    if not stance or not is_valid_stance(stance):
+        raise ValueError(f"Invalid stance output: {stance}")
+
+    return stance, _parse_gemini_prob(candidate)
+
+
+@future_safe
+@retry(**retry_kwargs)
+async def classify_w_prob_async(
+    client: AsyncClient,
+    model: str,
+    system_prompt: str | None,
+    user_prompt: str,
+) -> AnalysisOutput:
+    """Request a stance classification from Google Gemini with log probabilities.
+    This function is the async version of `classify_w_prob`.
+    """
+
+    response_schema = {
+        "type": "STRING",
+        "enum": get_args(Stance),
+    }
+    response = await client.models.generate_content(
         model=model,
         contents=user_prompt,
         config=GenerateContentConfig(

@@ -1,13 +1,13 @@
 import logging
 
 import orjson
-from returns.result import Success, Failure, Result, ResultE
+from returns.result import Failure, Result, ResultE, Success
 
-from .mutator import Mutator
-from .seed_scheduler import Seed, SeedScheduler
-from ..stance_dataset import StanceDataEntry
 from ..cls import StanceAnalyzer
 from ..env import PRINT_SEEDS
+from ..stance_dataset import StanceDataEntry
+from .mutator import Mutator
+from .seed_scheduler import Seed, SeedScheduler
 
 FuzzOutput = tuple[str, str, float]
 
@@ -69,9 +69,11 @@ class Fuzzer:
         # execute analysis
         num_added = 0
         total_generated = len(temp_seeds)
-        for orig_conf, entry in temp_seeds:
+        tasks = [(entry["text"], entry["target"]) for _, entry in temp_seeds]
+        results = self.analyzer.analyze(tasks, batch_size=None)  # all parallel
+        for (orig_conf, entry), result in zip(temp_seeds, results):
             orig_stance = entry["stance"]
-            match self.analyzer.analyze(entry["text"], entry["target"]):
+            match result:
                 case Success((stance, conf)):
                     if not conf:
                         continue

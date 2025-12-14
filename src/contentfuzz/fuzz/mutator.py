@@ -4,17 +4,18 @@ from collections import Counter
 
 from google import genai
 from google.genai.types import (
-    GenerateContentConfig,
-    ThinkingConfig,
-    GenerateContentResponse,
     AutomaticFunctionCallingConfig,
+    GenerateContentConfig,
+    GenerateContentResponse,
+    ThinkingConfig,
 )
-from returns.result import safe, ResultE
+from returns.result import ResultE, safe
+from tenacity import retry
 
+from ..stance_dataset import StanceDataEntry
+from ..utils import SEED, Language, retry_kwargs
 from .prompts import INSTRUCTION_EN, INSTRUCTION_ZH, REWRITE_EN, REWRITE_ZH
 from .utils import get_texts
-from ..stance_dataset import StanceDataEntry
-from ..utils import exp_retry, SEED, Language
 
 
 class Mutator:
@@ -113,7 +114,7 @@ class Mutator:
         self._energies[self._last_temp_idx] += reward
 
     @safe
-    @exp_retry
+    @retry(**retry_kwargs)
     def _gen(self, prompt: str) -> list[str]:
         temperature = self._choose_temperature()
         response: GenerateContentResponse = self.client.models.generate_content(

@@ -1,9 +1,20 @@
-from functools import wraps
-from typing import Callable, ParamSpec, TypeVar, Literal
 import os
+from typing import Any, Literal, ParamSpec, TypeVar
 
-from tenacity import retry, stop_after_attempt, wait_random_exponential
+from google.genai._interactions import (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
+from tenacity import (
+    retry_if_exception_type,
+    stop_after_attempt,
+    stop_never,
+    wait_random_exponential,
+)
 
+from .env import MAX_RETRIES
 
 # ISO 639-1 language code
 # https://en.wikipedia.org/wiki/ISO_639-1
@@ -13,22 +24,24 @@ Language = Literal["en", "zh"]
 P = ParamSpec("P")
 R = TypeVar("R")
 
+RetryExceptions = (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+    TimeoutError,
+)
 
-def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
-    """Apply exponential backoff (min=1, max=10) for 3 attempts.
-    Type-preserving and exception-preserving.
-    """
 
-    @wraps(func)
-    @retry(
-        reraise=True,
-        wait=wait_random_exponential(min=1, max=10),
-        stop=stop_after_attempt(3),
-    )
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        return func(*args, **kwargs)
-
-    return wrapper
+retry_kwargs: dict[str, Any] = dict(
+    reraise=True,
+    wait=wait_random_exponential(multiplier=1, max=60),
+    retry=retry_if_exception_type(RetryExceptions),
+    stop=stop_after_attempt(MAX_RETRIES) if MAX_RETRIES else stop_never,
+)
+"""config we use for retrying API for all LLMs.
+If environment variable `MAX_RETRIES` is not set, we retry indefinitely.
+"""
 
 
 SEED = int(os.getenv("SEED", "0"))

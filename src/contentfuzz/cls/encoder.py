@@ -1,6 +1,6 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-from returns.result import safe
 import torch
+from returns.result import ResultE, Success
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from .._types import Stance
 from ._base import AnalysisOutput
@@ -41,47 +41,43 @@ class Encoder:
                 if stance is not None:
                     self._id2stance[idx] = stance
 
-    @safe
-    def analyze(self, text: str, target: str) -> AnalysisOutput:
-        """Run a forward pass and return stance with probability.
+    def analyze(
+        self, tasks: list[tuple[str, str]], batch_size: int | None = 8
+    ) -> list[ResultE[AnalysisOutput]]:
+        """Batch analysis for multiple `(text, target)` pairs."""
+        results: list[ResultE[AnalysisOutput]] = []
+        id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
+        if batch_size is None:
+            batch_size = len(tasks)
+        for start in range(0, len(tasks), batch_size):
+            chunk = tasks[start : start + batch_size]
+            prompts = [to_prompt(text, target) for text, target in chunk]
+            batch = self._tokenizer(
+                prompts,
+                truncation=True,
+                padding="max_length",
+                max_length=512,
+                return_tensors="pt",
+            )
+            batch = {key: value.to(self._device) for key, value in batch.items()}
 
-        - Tokenizes `(text, target)` as a sentence pair for the finetuned
-          sequence classification head.
-        - Applies softmax to logits and selects the top label, mapped to
-          `Stance` when possible.
-        - Returns a tuple `(stance, probability)` where probability is the
-          model's softmax score for the chosen stance.
+            with torch.no_grad():
+                logits = self._model(**batch).logits
+                probs = torch.softmax(logits, dim=-1)
+                top_probs, top_indices = torch.max(probs, dim=-1)
 
-        Note: this method is decorated with `@safe`, so callers receive a
-        `Result` wrapping the output or an exception.
-        """
-        # Tokenize as a sentence pair for stance classification
-        # tokenization setting is the same as fine-tuning
-        batch = self._tokenizer(
-            to_prompt(text, target),
-            truncation=True,
-            padding="max_length",
-            max_length=512,
-            return_tensors="pt",
-        )
-        batch = {key: value.to(self._device) for key, value in batch.items()}
+            for idx_tensor, prob_tensor in zip(top_indices, top_probs):
+                idx = int(idx_tensor.item())
+                prob = float(prob_tensor.item())
 
-        with torch.no_grad():
-            outputs = self._model(**batch)
-            logits = outputs.logits[0]
-            probs = torch.softmax(logits, dim=-1)
-            idx = int(torch.argmax(probs).item())
-            prob = float(probs[idx].item())
+                stance: Stance | None = self._id2stance.get(idx)
+                if stance is None:
+                    label = id2label.get(idx, "")
+                    stance = _label_to_stance(label) or "Neutral"
 
-        # Resolve stance label
-        stance: Stance | None = self._id2stance.get(idx)
-        if stance is None:
-            # Fall back to interpreting label string if available
-            id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
-            label = id2label.get(idx, "")
-            stance = _label_to_stance(label) or "Neutral"
+                results.append(Success((stance, prob)))
 
-        return stance, prob
+        return results
 
 
 def _label_to_stance(label: str) -> Stance | None:

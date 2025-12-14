@@ -15,7 +15,7 @@ No Git submodules are needed for datasets.
 
 ### Python
 
-We use Python 3.12.
+We use Python 3.10.
 We recommend using [uv](https://docs.astral.sh/uv/getting-started/installation/) to manage your Python dependencies.
 
 ```sh
@@ -39,6 +39,11 @@ For CLI interface detains, please see the help page.
 ```sh
 uv run src/run_cls.py -h
 ```
+
+Please use `-b` to set batch size for number of tasks to process in parallel.
+
+- For encoder, please adjust batch size based on your VRAM size.
+- For LLMs, please adjust batch size based on your rate limit. We use this to control number of async requests.
 
 To evaluate the analysis results:
 

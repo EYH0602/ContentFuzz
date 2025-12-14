@@ -2,6 +2,7 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel
 from returns.result import ResultE
+
 from .._types import Stance
 
 AnalysisOutput = tuple[Stance, float | None]
@@ -19,12 +20,15 @@ class StanceAnalyzer(Protocol):
 
     model: str
 
-    def analyze(self, text: str, target: str) -> ResultE[AnalysisOutput]:
+    def analyze(
+        self, tasks: list[tuple[str, str]], batch_size: int | None = None
+    ) -> list[ResultE[AnalysisOutput]]:
         """
-        Analyze the given text and return the analysis output.
+        Analyze multiple `(text, target)` pairs in batches and return results in order.
 
         Args:
-            text (str): The text to analyze.
-            target (str): The target entity to analyze the text against.
+            tasks (list[tuple[str, str]]): List of (text, target) pairs.
+            batch_size (int | None): Number of pairs to process together. Defaults to None.
+                If None, processes all samples concurrently, and let retry handle rate limits.
         """
         ...
