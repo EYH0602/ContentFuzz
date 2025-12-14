@@ -80,11 +80,10 @@ class COLA:
         """Get completion from OpenAI API with specified role.
 
         Args:
-            client (OpenAI): The OpenAI client instance.
-            model (str): The model to use for completion.
             role (str): The role of the user (e.g., "linguist", "expert").
             instruction (str): The instruction for the model.
-            content (str): The content to analyze.
+            tweet (str): The content to analyze.
+            async_client (AsyncClient): The google-genai async client instance.
 
         Returns:
             str | None: The model's response or None if an error occurred.
@@ -133,12 +132,11 @@ class COLA:
         retry=retry_if_exception_type(RetryExceptions),
     )
     async def get_completion(self, prompt: str, async_client: AsyncClient) -> str:
-        """Get completion from OpenAI API.
+        """Get completion from Gemini API.
 
         Args:
-            client (OpenAI): The OpenAI client instance.
-            model (str): The model to use for completion.
             prompt (str): The prompt to send to the model.
+            async_client (AsyncClient): The google-genai async client instance.
 
         Returns:
             str: The model's response or None if an error occurred.
