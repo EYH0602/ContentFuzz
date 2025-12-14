@@ -10,10 +10,9 @@ from google.genai.types import (
     ThinkingConfig,
 )
 from returns.result import ResultE, safe
-from tenacity import retry
 
 from ..stance_dataset import StanceDataEntry
-from ..utils import SEED, Language, retry_kwargs
+from ..utils import SEED, Language, exp_retry
 from .prompts import INSTRUCTION_EN, INSTRUCTION_ZH, REWRITE_EN, REWRITE_ZH
 from .utils import get_texts
 
@@ -114,7 +113,7 @@ class Mutator:
         self._energies[self._last_temp_idx] += reward
 
     @safe
-    @retry(**retry_kwargs)
+    @exp_retry
     def _gen(self, prompt: str) -> list[str]:
         temperature = self._choose_temperature()
         response: GenerateContentResponse = self.client.models.generate_content(
@@ -139,7 +138,8 @@ class Mutator:
         prompt = self.rewrite_prompt.format(
             text=entry["text"], target=entry["target"], stance=entry["stance"]
         )
-        return self._gen(prompt)
+        rewrites = self._gen(prompt)
+        return rewrites
 
     def mutate(self, entry: StanceDataEntry) -> ResultE[list[str]]:
         """generates a list of mutated entries from the input entry"""
