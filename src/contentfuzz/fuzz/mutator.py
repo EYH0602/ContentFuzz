@@ -138,8 +138,7 @@ class Mutator:
         prompt = self.rewrite_prompt.format(
             text=entry["text"], target=entry["target"], stance=entry["stance"]
         )
-        rewrites = self._gen(prompt)
-        return rewrites
+        return self._gen(prompt)
 
     def mutate(self, entry: StanceDataEntry) -> ResultE[list[str]]:
         """generates a list of mutated entries from the input entry"""
