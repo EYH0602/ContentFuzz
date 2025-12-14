@@ -10,6 +10,7 @@ from google.genai._interactions import (
 from tenacity import (
     retry_if_exception_type,
     stop_after_attempt,
+    stop_never,
     wait_random_exponential,
 )
 
@@ -36,9 +37,11 @@ retry_kwargs: dict[str, Any] = dict(
     reraise=True,
     wait=wait_random_exponential(multiplier=1, max=60),
     retry=retry_if_exception_type(RetryExceptions),
-    stop=stop_after_attempt(MAX_RETRIES),
+    stop=stop_after_attempt(MAX_RETRIES) if MAX_RETRIES else stop_never,
 )
-"""config we use for retrying API for all LLMs"""
+"""config we use for retrying API for all LLMs.
+If environment variable `MAX_RETRIES` is not set, we retry indefinitely.
+"""
 
 
 SEED = int(os.getenv("SEED", "0"))
