@@ -15,10 +15,7 @@ from contentfuzz.cls import (
 )
 from contentfuzz.cross_model import compute_cross_model_esr, get_success_tasks
 from contentfuzz.evaluate import (
-    EvalMetrics,
-    compute_metrics,
     load_gen_results,
-    print_eval_metrics,
 )
 from contentfuzz.run import run_batch_generation
 from contentfuzz.stance_dataset import (

@@ -1,9 +1,6 @@
-import numpy as np
 import pandas as pd
-from sklearn.metrics import f1_score
 
 from contentfuzz._types import is_valid_stance
-from contentfuzz.evaluate import EvalMetrics
 from contentfuzz.stance_dataset import StanceDataEntry, StanceDataset
 
 _REQUIRED_COLUMNS = {"stance", "text", "target", "new_text", "predicted", "error"}
