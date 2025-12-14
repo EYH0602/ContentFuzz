@@ -1,0 +1,141 @@
+import argparse
+import logging
+import os
+import random
+from typing import get_args
+
+import pandas as pd
+
+from contentfuzz.cls import (
+    COLA,
+    Analyzer,
+    Encoder,
+    StanceAnalyzer,
+    ZeroshotAnalyzer,
+)
+from contentfuzz.cross_model import compute_cross_model_esr, get_success_tasks
+from contentfuzz.evaluate import (
+    EvalMetrics,
+    compute_metrics,
+    load_gen_results,
+    print_eval_metrics,
+)
+from contentfuzz.run import run_batch_generation
+from contentfuzz.stance_dataset import (
+    Dataset,
+    DatasetLangMap,
+    StanceDataset,
+)
+from contentfuzz.utils import SEED, get_skip_cnt
+
+
+def main(
+    dataset_name: Dataset,
+    analyzer_name: Analyzer,
+    input_result_path: str,
+    model: str = "gemini-2.5-flash-lite",
+    output_result_path: str | None = None,
+    batch_size: int = 1,
+) -> None:
+    """run Stance Analysis in ContentFuzz using success results
+    from another analyzer.
+
+    Usage:
+        python src/run_cross_model.py -h
+    """
+
+    if output_result_path is None:
+        output_dir = os.path.abspath("results/cross_model")
+        os.makedirs(output_dir, exist_ok=True)
+
+        file_base = os.path.basename(input_result_path)
+        output_result_path = os.path.join(output_dir, file_base)
+
+    random.seed(SEED)
+    lang = DatasetLangMap[dataset_name]
+
+    gen_results = load_gen_results(input_result_path)
+    success_tasks: StanceDataset = get_success_tasks(gen_results)
+
+    skip_count = get_skip_cnt(output_result_path)
+    if skip_count > 0:
+        logging.info(
+            f"Found {skip_count} results in {output_result_path}, skipping them..."
+        )
+        success_tasks = success_tasks[skip_count:]
+
+    analyzer: StanceAnalyzer
+    match analyzer_name:
+        case "zeroshot":
+            analyzer = ZeroshotAnalyzer(model=model)
+        case "cola":
+            analyzer = COLA(model=model, language=lang)
+        case "encoder":
+            analyzer = Encoder(model=model)
+
+    logging.info(f"Running {analyzer.__class__.__name__} with {analyzer.model}.")
+    results = run_batch_generation(
+        success_tasks,
+        analyzer,
+        batch_size=batch_size,
+        output_result_path=output_result_path,
+    )
+
+    cross_model_esr = compute_cross_model_esr(pd.DataFrame(results))
+    print(f"Cross-Model ESR: {cross_model_esr}")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    dataset_choices = get_args(Dataset)
+    analyzer_choices = get_args(Analyzer)
+    parser = argparse.ArgumentParser(
+        description="Run ContentFuzz stance classification experiment."
+    )
+    parser.add_argument(
+        "dataset_name",
+        choices=dataset_choices,
+        help="Dataset to evaluate.",
+    )
+    parser.add_argument(
+        "analyzer_name",
+        choices=analyzer_choices,
+        help="Analyzer to run.",
+    )
+    parser.add_argument(
+        "input_result_path",
+        help="Path to input generation results JSONL.",
+        type=str,
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        default="gemini-2.5-flash-lite",
+        help="Gemini Model to use for generation.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-result-path",
+        dest="output_result_path",
+        help=(
+            "Optional path to store generation results JSONL; defaults to "
+            "results/cross_model/{analyzer}+{model}+{dataset}.jsonl."
+        ),
+    )
+    parser.add_argument(
+        "-b",
+        "--batch_size",
+        dest="batch_size",
+        type=int,
+        default=1,
+        help="If set, run generation in batches of the given size. Defaults to 1.",
+    )
+    args = parser.parse_args()
+    main(
+        dataset_name=args.dataset_name,
+        analyzer_name=args.analyzer_name,
+        input_result_path=args.input_result_path,
+        model=args.model,
+        output_result_path=args.output_result_path,
+        batch_size=args.batch_size,
+    )
