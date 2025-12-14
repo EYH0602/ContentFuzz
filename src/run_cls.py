@@ -36,7 +36,7 @@ def main(
     model: str = "gemini-2.5-flash-lite",
     sample_n: int | None = None,
     output_result_path: str | None = None,
-    batch: int = 1,
+    batch_size: int = 1,
 ) -> None:
     """Main entry point to run Stance Analysis in ContentFuzz.
 
@@ -85,7 +85,7 @@ def main(
     results = run_batch_generation(
         dataset,
         analyzer,
-        batch_size=batch,
+        batch_size=batch_size,
         output_result_path=output_result_path,
     )
 
@@ -134,11 +134,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-b",
-        "--batch",
-        dest="batch",
+        "--batch_size",
+        dest="batch_size",
         type=int,
         default=1,
-        help="If set, run generation in batches of the given size.",
+        help="If set, run generation in batches of the given size. Defaults to 1.",
     )
     args = parser.parse_args()
     main(
@@ -147,5 +147,5 @@ if __name__ == "__main__":
         model=args.model,
         sample_n=args.sample_n,
         output_result_path=args.output_result_path,
-        batch=args.batch,
+        batch_size=args.batch_size,
     )
