@@ -1,17 +1,17 @@
-from typing import TypedDict, Literal
 import logging
 from functools import cache
+from typing import Literal, TypedDict
 
-import pandas as pd
-import orjson
-from sklearn.metrics import f1_score
 import evaluate
-import numpy as np
 import mauve
+import numpy as np
+import orjson
+import pandas as pd
+from sklearn.metrics import f1_score
 from transformers import AutoTokenizer
 
-from .stance_dataset import StanceDataset
 from ._types import Stance
+from .stance_dataset import StanceDataset
 from .utils import Language
 
 
@@ -103,7 +103,6 @@ def compute_metrics(df: pd.DataFrame) -> EvalMetrics:
         df["truth"].astype(str),
         df["predicted"].astype(str),
         average="macro",
-        zero_division=0,
     )
     avg_correct_confidence = df[df["truth"] == df["predicted"]]["confidence"].mean()
     avg_incorrect_confidence = df[df["truth"] != df["predicted"]]["confidence"].mean()
@@ -111,8 +110,8 @@ def compute_metrics(df: pd.DataFrame) -> EvalMetrics:
     return {
         "accuracy": round(float(accuracy), 4),
         "f1": round(float(f1), 4),
-        "average_correct_confidence": round(avg_correct_confidence, 4),
-        "average_incorrect_confidence": round(avg_incorrect_confidence, 4),
+        "average_correct_confidence": round(float(avg_correct_confidence), 4),
+        "average_incorrect_confidence": round(float(avg_incorrect_confidence), 4),
     }
 
 
@@ -380,7 +379,7 @@ def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
     # iteration counts are zero-indexed; add 1 before computing stats
     success_iterations = (
         pd.to_numeric(df.loc[success_mask, "iteration"], errors="coerce") + 1
-    ).dropna()
+    ).dropna()  # type: ignore
 
     iter_stats: IterationStats | None = None
     if not success_iterations.empty:
