@@ -17,14 +17,10 @@ from returns.result import safe
 from structured_logprobs import add_logprobs
 from tenacity import (
     retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
 )
 
 from .._types import Stance, is_valid_stance
-from ..env import MAX_RETRIES
-from ..utils import SEED, RetryExceptions, exp_retry
+from ..utils import SEED, retry_kwargs
 from ._base import AnalysisOutput, ClassifierOutput
 
 
@@ -58,7 +54,7 @@ def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str
 
 @deprecated(reason="Use Google Gemini instead.")
 @safe
-@exp_retry
+@retry(**retry_kwargs)
 def classify_w_prob_openai(
     client: OpenAI,
     model: str,
@@ -149,7 +145,7 @@ def _parse_gemini_prob(candidate) -> float | None:
 
 
 @safe
-@exp_retry
+@retry(**retry_kwargs)
 def classify_w_prob(
     client: genai.Client,
     model: str,
@@ -193,12 +189,7 @@ def classify_w_prob(
 
 
 @future_safe
-@retry(
-    reraise=True,
-    wait=wait_random_exponential(max=60, multiplier=1),
-    stop=stop_after_attempt(MAX_RETRIES),
-    retry=retry_if_exception_type(RetryExceptions),
-)
+@retry(**retry_kwargs)
 async def classify_w_prob_async(
     client: AsyncClient,
     model: str,

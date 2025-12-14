@@ -12,15 +12,9 @@ from google.genai.types import (
 )
 from returns.future import FutureResult, FutureResultE, future_safe
 from returns.result import ResultE
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
-)
+from tenacity import retry
 
-from ..env import MAX_RETRIES
-from ..utils import Language, RetryExceptions
+from ..utils import Language, retry_kwargs
 from ._base import AnalysisOutput
 from ._cola_prompts import (
     PROMPT_SETS,
@@ -68,12 +62,7 @@ class COLA:
         return STANCE_TRANSLATIONS[self.language][stance]
 
     @future_safe
-    @retry(
-        reraise=True,
-        wait=wait_random_exponential(max=60, multiplier=1),
-        retry=retry_if_exception_type(RetryExceptions),
-        stop=stop_after_attempt(MAX_RETRIES),
-    )
+    @retry(**retry_kwargs)
     async def get_completion_with_role(
         self, role: str, instruction: str, tweet: str, async_client: AsyncClient
     ) -> str:
@@ -125,12 +114,7 @@ class COLA:
         return text
 
     @future_safe
-    @retry(
-        reraise=True,
-        wait=wait_random_exponential(max=60, multiplier=1),
-        stop=stop_after_attempt(MAX_RETRIES),
-        retry=retry_if_exception_type(RetryExceptions),
-    )
+    @retry(**retry_kwargs)
     async def get_completion(self, prompt: str, async_client: AsyncClient) -> str:
         """Get completion from Gemini API.
 
