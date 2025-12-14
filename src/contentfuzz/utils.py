@@ -46,10 +46,10 @@ SEED = int(os.getenv("SEED", "0"))
 
 
 def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
-    """config we use for retrying API for all LLMs.
-    If environment variable `MAX_RETRIES` is not set, we retry indefinitely.
+    """Decorator for retrying API calls to all LLMs with exponential backoff.
 
-    This wrapper function is for type checking.
+    If the environment variable `MAX_RETRIES` is not set, retries indefinitely.
+    This wrapper preserves type information that would otherwise be lost when using tenacity's retry decorator.
     """
     decorated = retry(**retry_kwargs)(func)  # mypy thinks this returns Any
     return cast(Callable[P, R], decorated)
