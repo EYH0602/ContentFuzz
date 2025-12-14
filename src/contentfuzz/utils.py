@@ -1,5 +1,5 @@
 import os
-from typing import Any, Literal, ParamSpec, TypeVar
+from typing import Any, Callable, Literal, ParamSpec, TypeVar, cast
 
 from google.genai._interactions import (
     APIConnectionError,
@@ -8,6 +8,7 @@ from google.genai._interactions import (
     RateLimitError,
 )
 from tenacity import (
+    retry,
     retry_if_exception_type,
     stop_after_attempt,
     stop_never,
@@ -39,12 +40,19 @@ retry_kwargs: dict[str, Any] = dict(
     retry=retry_if_exception_type(RetryExceptions),
     stop=stop_after_attempt(MAX_RETRIES) if MAX_RETRIES else stop_never,
 )
-"""config we use for retrying API for all LLMs.
-If environment variable `MAX_RETRIES` is not set, we retry indefinitely.
-"""
 
 
 SEED = int(os.getenv("SEED", "0"))
+
+
+def exp_retry(func: Callable[P, R]) -> Callable[P, R]:
+    """Decorator for retrying API calls to all LLMs with exponential backoff.
+
+    If the environment variable `MAX_RETRIES` is not set, retries indefinitely.
+    This wrapper preserves type information that would otherwise be lost when using tenacity's retry decorator.
+    """
+    decorated = retry(**retry_kwargs)(func)  # mypy thinks this returns Any
+    return cast(Callable[P, R], decorated)
 
 
 def get_default_cls_output_path(

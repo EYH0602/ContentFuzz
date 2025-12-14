@@ -12,9 +12,8 @@ from google.genai.types import (
 )
 from returns.future import FutureResult, FutureResultE, future_safe
 from returns.result import ResultE
-from tenacity import retry
 
-from ..utils import Language, retry_kwargs
+from ..utils import Language, exp_retry
 from ._base import AnalysisOutput
 from ._cola_prompts import (
     PROMPT_SETS,
@@ -62,7 +61,7 @@ class COLA:
         return STANCE_TRANSLATIONS[self.language][stance]
 
     @future_safe
-    @retry(**retry_kwargs)
+    @exp_retry
     async def get_completion_with_role(
         self, role: str, instruction: str, tweet: str, async_client: AsyncClient
     ) -> str:
@@ -114,7 +113,7 @@ class COLA:
         return text
 
     @future_safe
-    @retry(**retry_kwargs)
+    @exp_retry
     async def get_completion(self, prompt: str, async_client: AsyncClient) -> str:
         """Get completion from Gemini API.
 

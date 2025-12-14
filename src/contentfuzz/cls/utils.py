@@ -15,12 +15,9 @@ from openai import OpenAI
 from returns.future import future_safe
 from returns.result import safe
 from structured_logprobs import add_logprobs
-from tenacity import (
-    retry,
-)
 
 from .._types import Stance, is_valid_stance
-from ..utils import SEED, retry_kwargs
+from ..utils import SEED, exp_retry
 from ._base import AnalysisOutput, ClassifierOutput
 
 
@@ -54,7 +51,7 @@ def parse_reasoning_output(text: str, delim: str = "</think>") -> tuple[str, str
 
 @deprecated(reason="Use Google Gemini instead.")
 @safe
-@retry(**retry_kwargs)
+@exp_retry
 def classify_w_prob_openai(
     client: OpenAI,
     model: str,
@@ -145,7 +142,7 @@ def _parse_gemini_prob(candidate) -> float | None:
 
 
 @safe
-@retry(**retry_kwargs)
+@exp_retry
 def classify_w_prob(
     client: genai.Client,
     model: str,
@@ -189,7 +186,7 @@ def classify_w_prob(
 
 
 @future_safe
-@retry(**retry_kwargs)
+@exp_retry
 async def classify_w_prob_async(
     client: AsyncClient,
     model: str,
