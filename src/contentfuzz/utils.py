@@ -1,15 +1,8 @@
 import os
 from typing import Any, Callable, Literal, ParamSpec, TypeVar, cast
 
-from google.genai._interactions import (
-    APIConnectionError,
-    APITimeoutError,
-    InternalServerError,
-    RateLimitError,
-)
 from tenacity import (
     retry,
-    retry_if_exception_type,
     stop_after_attempt,
     stop_never,
     wait_random_exponential,
@@ -25,19 +18,10 @@ Language = Literal["en", "zh"]
 P = ParamSpec("P")
 R = TypeVar("R")
 
-RetryExceptions = (
-    APIConnectionError,
-    APITimeoutError,
-    InternalServerError,
-    RateLimitError,
-    TimeoutError,
-)
-
 
 retry_kwargs: dict[str, Any] = dict(
     reraise=True,
     wait=wait_random_exponential(multiplier=1, max=60),
-    retry=retry_if_exception_type(RetryExceptions),
     stop=stop_after_attempt(MAX_RETRIES) if MAX_RETRIES else stop_never,
 )
 
