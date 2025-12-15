@@ -1,8 +1,8 @@
 #!/bin/bash
 
 model="gemini-2.5-flash-lite"
-result_path=results/encoder+saved_models--FacebookAI--roberta-base+sem16+sem16.jsonl
-model_path=saved_models/FacebookAI/roberta-base+sem16
+result_path=results/encoder+saved_models--FacebookAI--roberta-base--sem16+sem16.jsonl
+model_path=saved_models/FacebookAI/roberta-base/sem16
 n_samples=200
 
 set -euo pipefail
