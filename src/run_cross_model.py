@@ -132,7 +132,7 @@ if __name__ == "__main__":
         dest="output_result_path",
         help=(
             "Optional path to store generation results JSONL; defaults to "
-            "results/cross_model/{analyzer}+{model}+{dataset}.jsonl."
+            "cross_model/{dataset_name}/{analyzer}+{model}={input_file_name}."
         ),
     )
     parser.add_argument(
