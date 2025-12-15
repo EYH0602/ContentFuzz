@@ -6,9 +6,9 @@ from contentfuzz.stance_dataset import StanceDataEntry, StanceDataset
 _REQUIRED_COLUMNS = {"stance", "text", "target", "new_text", "predicted", "error"}
 
 
-def get_success_tasks(df: pd.DataFrame) -> StanceDataset:
+def load_cross_model_dataset(df: pd.DataFrame) -> StanceDataset:
     """
-    Extracts successful tasks from the given DataFrame.
+    Convert a raw DataFrame into a StanceDataset for cross model evaluation.
     For cross model success rate,
     we use the fuzzed text,
     and check if the model's prediction matches the original stance.
@@ -19,14 +19,8 @@ def get_success_tasks(df: pd.DataFrame) -> StanceDataset:
     if df.empty:
         return []
 
-    error_series = (
-        df["error"] if "error" in df.columns else pd.Series(pd.NA, index=df.index)
-    )
-
-    success_mask = df["predicted"].notna() & error_series.isna()
-    successful_tasks = df[success_mask]
     tasks = []
-    for _, row in successful_tasks.iterrows():
+    for _, row in df.iterrows():
         stance = str(row["stance"])
         new_text = str(row["new_text"])
         target = str(row["target"])

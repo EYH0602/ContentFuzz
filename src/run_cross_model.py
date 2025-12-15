@@ -13,7 +13,7 @@ from contentfuzz.cls import (
     StanceAnalyzer,
     ZeroshotAnalyzer,
 )
-from contentfuzz.cross_model import compute_cross_model_esr, get_success_tasks
+from contentfuzz.cross_model import compute_cross_model_esr, load_cross_model_dataset
 from contentfuzz.evaluate import (
     load_gen_results,
 )
@@ -68,7 +68,7 @@ def main(
     lang = DatasetLangMap[dataset_name]
 
     gen_results = load_gen_results(input_result_path)
-    success_tasks: StanceDataset = get_success_tasks(gen_results)
+    success_tasks: StanceDataset = load_cross_model_dataset(gen_results)
 
     skip_count = get_skip_cnt(output_result_path)
     if skip_count > 0:
