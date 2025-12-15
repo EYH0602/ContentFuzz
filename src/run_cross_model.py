@@ -37,7 +37,7 @@ def get_default_cross_model_output_path(
     sanitized_model_name = model.replace("/", "--")
     output_result_path = os.path.join(
         output_dir,
-        f"{analyzer_name}+{sanitized_model_name}<=>{file_name}",
+        f"{analyzer_name}+{sanitized_model_name}={file_name}",
     )
     return output_result_path
 
