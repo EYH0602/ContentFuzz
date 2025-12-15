@@ -26,6 +26,22 @@ from contentfuzz.stance_dataset import (
 from contentfuzz.utils import SEED, get_skip_cnt
 
 
+def get_default_cross_model_output_path(
+    output_dir: str, analyzer_name: str, model: str, file_name: str
+) -> str:
+    """Construct default cross model output path.
+    We replace '/' in model names with '--' to avoid issues with file paths.
+    Naming format:
+        crossed_analyzer+model=input_file_name.jsonl
+    """
+    sanitized_model_name = model.replace("/", "--")
+    output_result_path = os.path.join(
+        output_dir,
+        f"{analyzer_name}+{sanitized_model_name}<=>{file_name}",
+    )
+    return output_result_path
+
+
 def main(
     dataset_name: Dataset,
     analyzer_name: Analyzer,
@@ -34,20 +50,20 @@ def main(
     output_result_path: str | None = None,
     batch_size: int = 1,
 ) -> None:
-    """run Stance Analysis in ContentFuzz using success results
-    from another analyzer.
+    """Run stance analysis using results from another analyzer.
 
     Usage:
         python src/run_cross_model.py -h
     """
 
     if output_result_path is None:
-        output_dir = os.path.abspath("results/cross_model")
+        output_dir = os.path.abspath(f"cross_model/{dataset_name}")
         os.makedirs(output_dir, exist_ok=True)
 
         file_base = os.path.basename(input_result_path)
-        output_result_path = os.path.join(output_dir, file_base)
-
+        output_result_path = get_default_cross_model_output_path(
+            output_dir, analyzer_name, model, file_base
+        )
     random.seed(SEED)
     lang = DatasetLangMap[dataset_name]
 
