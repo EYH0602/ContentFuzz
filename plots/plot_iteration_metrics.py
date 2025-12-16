@@ -1,49 +1,88 @@
 """Plot semantic integrity metrics against mutation iterations.
 
 This script reads the CSV produced by `plots/iteration_metrics.py` and
-generates simple line charts to visualize how semantic metrics change
-as the number of mutation iterations increases.
+shows box plots per iteration window to summarize the distribution of
+metric values and reduce noise.
 """
-
-from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Mapping
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
 
-def detect_metrics(df: pd.DataFrame) -> dict[str, str]:
-    """Detect metric mean columns from the aggregated CSV."""
-    metrics: dict[str, str] = {}
+def detect_metrics(df: pd.DataFrame) -> dict[str, dict[str, str | None]]:
+    """Detect metric columns (mean/std) from the aggregated CSV."""
+    metrics: dict[str, dict[str, str | None]] = {}
     for col in df.columns:
         if not col.endswith("_mean"):
             continue
         base = col.removesuffix("_mean")
-        metrics[base] = col
+        std_col = f"{base}_std" if f"{base}_std" in df.columns else None
+        metrics[base] = {
+            "mean": col,
+            "std": std_col,
+            "count": "count" if "count" in df.columns else None,
+        }
     return metrics
+
+
+def add_window_labels(df: pd.DataFrame, window_size: int) -> pd.DataFrame:
+    """Annotate rows with window boundaries/labels based on iteration."""
+    if window_size <= 0:
+        raise ValueError("window_size must be positive")
+
+    work = df.copy()
+    work["window_start"] = ((work["iteration"] - 1) // window_size) * window_size + 1
+    work["window_end"] = work["window_start"] + window_size - 1
+    work["window_label"] = work.apply(
+        lambda row: f"{int(row.window_start)}-{int(row.window_end)}", axis=1
+    )
+    work["window_center"] = work["window_start"] + (window_size - 1) / 2
+    return work
 
 
 def plot_metric(
     df: pd.DataFrame,
     metric: str,
     mean_col: str,
+    window_size: int,
     output_dir: Path,
 ) -> Path:
     """Plot a single metric and return the saved path."""
-    x = df["iteration"]
-    y = df[mean_col]
+    work = add_window_labels(
+        df[["iteration", mean_col]].rename(columns={mean_col: "metric"}), window_size
+    )
+    order = (
+        work[["window_label", "window_start"]]
+        .drop_duplicates()
+        .sort_values("window_start")["window_label"]
+        .tolist()
+    )
+    mean_line = (
+        work.groupby("window_label")["metric"].mean().reindex(order).reset_index()
+    )
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    sns.lineplot(x=x, y=y, marker="o", ax=ax, label=metric)
-    ax.set_title(f"{metric.replace('_', ' ').title()} vs. Iteration")
-    ax.set_xlabel("Mutation iteration")
-    ax.set_ylabel(metric.replace("_", " ").title())
+    fig, ax = plt.subplots(figsize=(10, 4))
+    sns.boxplot(
+        data=work,
+        x="window_label",
+        y="metric",
+        order=order,
+        ax=ax,
+        color="lightgray",
+    )
+    ax.plot(
+        range(len(order)), mean_line["metric"], marker="o", color="C0", label="Mean"
+    )
+    ax.set_xlabel("Mutation iterations")
+    ax.set_ylabel("BERTScore F1")
     ax.grid(True, linestyle="--", alpha=0.3)
-    ax.set_xticks(sorted(df["iteration"].unique()))
+    ax.set_xticks(range(len(order)))
+    ax.set_xticklabels(order, rotation=30, ha="right")
+    ax.legend()
     fig.tight_layout()
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -71,6 +110,13 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         default="plots/figures",
         help="Directory to save plots.",
+    )
+    parser.add_argument(
+        "-w",
+        "--window-size",
+        type=int,
+        default=20,
+        help="Window size (in iterations) for smoothing (default: 20).",
     )
     return parser.parse_args()
 
@@ -101,7 +147,8 @@ def main() -> None:
             plot_metric(
                 df,
                 metric=metric,
-                mean_col=cols,
+                mean_col=cols["mean"],  # type: ignore
+                window_size=args.window_size,
                 output_dir=output_dir,
             )
         )
