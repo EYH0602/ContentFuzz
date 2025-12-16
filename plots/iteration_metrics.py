@@ -1,3 +1,5 @@
+# type: ignore
+# pylint: disable
 """Aggregate semantic metrics by mutation iteration for fuzzing outputs.
 
 This script loads a single JSONL file produced by `run_fuzz.py` and
@@ -5,8 +7,6 @@ computes per-iteration averages (with standard deviation and standard error)
 for semantic integrity metrics of successful mutations. Use the resulting CSV
 to drive plots that show how iteration counts correlate with semantic drift.
 """
-# type: ignore
-# pylint: disable
 
 from __future__ import annotations
 
@@ -69,7 +69,10 @@ def summarize_by_iteration(
     """Aggregate metrics per iteration with error bars (std and sem)."""
     rows: list[dict[str, float | int]] = []
     for iteration, group in df.groupby("iteration_num"):
-        row: dict[str, float | int] = {"iteration": int(iteration), "count": len(group)}
+        row: dict[str, float | int] = {
+            "iteration": int(iteration),
+            "count": len(group),
+        }
         for col in metric_columns:
             if col not in group.columns:
                 continue
