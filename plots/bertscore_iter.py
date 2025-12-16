@@ -1,11 +1,11 @@
 # type: ignore
 # pylint: disable
-"""Aggregate semantic metrics by mutation iteration for fuzzing outputs.
+"""Aggregate BERTScore F1 by mutation iteration for fuzzing outputs.
 
 This script loads a single JSONL file produced by `run_fuzz.py` and
 computes per-iteration averages (with standard deviation and standard error)
-for semantic integrity metrics of successful mutations. Use the resulting CSV
-to drive plots that show how iteration counts correlate with semantic drift.
+for BERTScore F1 on successful mutations. Use the resulting CSV to drive
+plots that show how iteration counts correlate with semantic drift.
 """
 
 from __future__ import annotations
