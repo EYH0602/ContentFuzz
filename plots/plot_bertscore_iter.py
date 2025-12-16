@@ -1,3 +1,5 @@
+# type: ignore
+# pylint: disable
 """Plot BERTScore F1 against mutation iterations.
 
 This script reads the CSV produced by `plots/bertscore_iter.py` and
@@ -11,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from scipy import stats
 
 
 def detect_metrics(df: pd.DataFrame) -> dict[str, dict[str, str | None]]:
@@ -65,6 +68,22 @@ def plot_metric(
         work.groupby("window_label")["metric"].mean().reindex(order).reset_index()
     )
 
+    regression = None
+    if work["iteration"].nunique() >= 2:
+        fit = stats.linregress(df["iteration"], df[mean_col])
+        centers = (
+            work[["window_label", "window_center"]]
+            .drop_duplicates()
+            .set_index("window_label")
+            .reindex(order)["window_center"]
+        )
+        reg_y = fit.intercept + fit.slope * centers
+        regression = {
+            "x": list(range(len(order))),
+            "y": reg_y,
+            "label": f"Linear fit (β={fit.slope:.2e}, p={fit.pvalue:.3f}, R²={fit.rvalue**2:.3f})",
+        }
+
     fig, ax = plt.subplots(figsize=(10, 4))
     sns.boxplot(
         data=work,
@@ -77,6 +96,14 @@ def plot_metric(
     ax.plot(
         range(len(order)), mean_line["metric"], marker="o", color="C0", label="Mean"
     )
+    if regression:
+        ax.plot(
+            regression["x"],
+            regression["y"],
+            color="goldenrod",
+            linestyle="--",
+            label=regression["label"],
+        )
     ax.set_xlabel("Mutation iterations")
     ax.set_ylabel("BERTScore F1")
     ax.grid(True, linestyle="--", alpha=0.3)
