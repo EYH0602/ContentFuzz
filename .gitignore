@@ -212,3 +212,4 @@ saved_models/
 saved_models
 /fuzz/
 cross_model/
+*.csv
