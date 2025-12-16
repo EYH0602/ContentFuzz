@@ -49,7 +49,7 @@ def plot_metric(
     metric: str,
     mean_col: str,
     window_size: int,
-    output_dir: Path,
+    output_path: Path,
 ) -> Path:
     """Plot a single metric and return the saved path."""
     work = add_window_labels(
@@ -85,11 +85,10 @@ def plot_metric(
     ax.legend()
     fig.tight_layout()
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    out_path = output_dir / f"{metric}.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=500, bbox_inches="tight")
     plt.close(fig)
-    return out_path
+    return output_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,9 +106,14 @@ def parse_args() -> argparse.Namespace:
         help="Specific metrics to plot (base names without _mean); defaults to all detected.",
     )
     parser.add_argument(
-        "--output-dir",
-        default="plots/figures",
-        help="Directory to save plots.",
+        "-o",
+        "--output",
+        dest="output",
+        default=None,
+        help=(
+            "Output path. If multiple metrics are plotted, the metric name is inserted "
+            "before the file extension. Defaults to plots/figures/<metric>.png"
+        ),
     )
     parser.add_argument(
         "-w",
@@ -140,16 +144,24 @@ def main() -> None:
         if not selected:
             raise SystemExit("None of the requested metrics were found in the CSV.")
 
-    output_dir = Path(args.output_dir)
     saved_paths: list[Path] = []
+    base_output = Path(args.output) if args.output else None
+    default_dir = Path("plots/figures")
     for metric, cols in selected.items():
+        if base_output:
+            if len(selected) == 1:
+                output_path = base_output
+            else:
+                output_path = base_output.with_stem(f"{base_output.stem}_{metric}")
+        else:
+            output_path = default_dir / f"{metric}.png"
         saved_paths.append(
             plot_metric(
                 df,
                 metric=metric,
                 mean_col=cols["mean"],  # type: ignore
                 window_size=args.window_size,
-                output_dir=output_dir,
+                output_path=output_path,
             )
         )
 
