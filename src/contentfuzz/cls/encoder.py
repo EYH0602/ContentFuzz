@@ -45,10 +45,14 @@ class Encoder:
         self, tasks: list[tuple[str, str]], batch_size: int | None = 8
     ) -> list[ResultE[AnalysisOutput]]:
         """Batch analysis for multiple `(text, target)` pairs."""
+        if len(tasks) == 0:
+            return []
+
         results: list[ResultE[AnalysisOutput]] = []
         id2label: dict[int, str] = getattr(self._model.config, "id2label", {}) or {}
         if batch_size is None:
             batch_size = len(tasks)
+        assert batch_size > 0, "batch_size must be positive"
         for start in range(0, len(tasks), batch_size):
             chunk = tasks[start : start + batch_size]
             prompts = [to_prompt(text, target) for text, target in chunk]

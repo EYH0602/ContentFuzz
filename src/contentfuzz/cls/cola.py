@@ -294,6 +294,7 @@ class COLA:
         Returns:
             list[ResultE[AnalysisOutput]]: List of analysis results in order
         """
+        assert batch_size is None or batch_size > 0, "batch_size must be positive"
 
         async def _run_batches() -> list[ResultE[AnalysisOutput]]:
             async_client = self.client.aio
