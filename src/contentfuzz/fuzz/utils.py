@@ -7,8 +7,17 @@ from google.genai.types import (
 )
 
 
+class EmptyTextExtractedError(Exception):
+    """Raised when no text could be extracted from the response."""
+
+    pass
+
+
 def _get_text_from_parts(parts: Iterable[Part]) -> str | None:
-    """Return concatenated text from parts, ignoring thoughts and non-text."""
+    """Return concatenated text from parts, ignoring thoughts and non-text.
+    If no text parts are found, return raise `EmptyTextExtractedError`,
+    the caller decides whether to ignore or retry.
+    """
     text = ""
     any_text_part_text = False
 
@@ -42,4 +51,6 @@ def get_texts(response: GenerateContentResponse) -> list[str]:
         if text is not None:
             texts.append(text)
 
+    if len(texts) == 0:
+        raise EmptyTextExtractedError
     return texts

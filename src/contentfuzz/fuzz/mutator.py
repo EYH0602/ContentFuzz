@@ -19,11 +19,11 @@ from .utils import get_texts
 
 class Mutator:
     """
-    Generates variations of input texts using the OpenAI Chat Completions API.
+    Generates variations of input texts using the Google Gemini API.
 
     Parameters
     - model: str
-      The OpenAI chat model to use. Defaults to "gpt-4.1-nano".
+      The Gemini model to use. Defaults to "gemini-2.5-flash-lite".
 
     - n: int
       Number of completions to request per prompt. Defaults to 5.
@@ -35,7 +35,7 @@ class Mutator:
       scheduling is disabled and the fixed value is used for all generations.
 
     Notes
-    - Requires the `OPENAI_API_KEY` environment variable to be set.
+    - Requires the `GEMINI_API_KEY` environment variable to be set.
     - When scheduling is enabled, `update_energy` adjusts sampling weights based
       on observed success to bias future temperature choices.
     """
@@ -134,7 +134,9 @@ class Mutator:
         return get_texts(response)
 
     def rewrite(self, entry: StanceDataEntry) -> ResultE[list[str]]:
-        """rewrite mutator, the LLM rewrites the post without changing its meaning"""
+        """rewrite mutator, the LLM rewrites the post without changing its meaning.
+        Retry on all exceptions until a set `MAX_RETRIES` given in environment variable.
+        """
         prompt = self.rewrite_prompt.format(
             text=entry["text"], target=entry["target"], stance=entry["stance"]
         )
