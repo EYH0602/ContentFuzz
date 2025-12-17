@@ -134,7 +134,9 @@ class Mutator:
         return get_texts(response)
 
     def rewrite(self, entry: StanceDataEntry) -> ResultE[list[str]]:
-        """rewrite mutator, the LLM rewrites the post without changing its meaning"""
+        """rewrite mutator, the LLM rewrites the post without changing its meaning.
+        Retry on all exceptions until a set `MAX_RETRIES` given in environment variable.
+        """
         prompt = self.rewrite_prompt.format(
             text=entry["text"], target=entry["target"], stance=entry["stance"]
         )
