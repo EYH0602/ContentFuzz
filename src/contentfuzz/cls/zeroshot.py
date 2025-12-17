@@ -14,7 +14,7 @@ ONLY output one word chosen from Favor, Against, Neutral.
 
 
 class ZeroshotAnalyzer:
-    """Zero-shot stance analysis using OpenAI API"""
+    """Zero-shot stance analysis using Google Gemini API"""
 
     def __init__(
         self,

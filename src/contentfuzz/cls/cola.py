@@ -65,7 +65,7 @@ class COLA:
     async def get_completion_with_role(
         self, role: str, instruction: str, tweet: str, async_client: AsyncClient
     ) -> str:
-        """Get completion from OpenAI API with specified role.
+        """Get completion from Gemini API with specified role.
 
         Args:
             role (str): The role of the user (e.g., "linguist", "expert").
