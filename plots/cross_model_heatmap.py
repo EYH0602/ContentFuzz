@@ -4,6 +4,8 @@ import pandas as pd
 import seaborn as sns
 import typer
 
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
 cmap = sns.diverging_palette(230, 20, as_cmap=True)
 
 
@@ -40,7 +42,7 @@ def plot_directional_heatmap(
     ax.set_ylabel("Source Analyzer")
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.savefig(output_path, dpi=500, bbox_inches="tight")
 
 
 def main(input_path: str, output_path: str = "out.png", scale: float = 0.7):
