@@ -13,6 +13,7 @@ def plot_directional_heatmap(
     df: pd.DataFrame,
     output_path: str,
     cell_scale: float,
+    label: bool = True,
 ):
     analyzers = df.index.tolist()
 
@@ -34,7 +35,7 @@ def plot_directional_heatmap(
         linewidths=0.5,
         annot=True,
         fmt=".2f",
-        cbar_kws={"label": "Escape Success Rate"},
+        cbar_kws={"label": "Escape Success Rate"} if label else None,
         ax=ax,
     )
 
@@ -45,10 +46,15 @@ def plot_directional_heatmap(
     plt.savefig(output_path, dpi=500, bbox_inches="tight")
 
 
-def main(input_path: str, output_path: str = "out.png", scale: float = 0.7):
+def main(
+    input_path: str,
+    output_path: str = "out.png",
+    scale: float = 0.7,
+    label: bool = False,
+):
     # Load CSV
     df = pd.read_csv(input_path, index_col=0)
-    plot_directional_heatmap(df, output_path, scale)
+    plot_directional_heatmap(df, output_path, scale, label)
 
 
 if __name__ == "__main__":
