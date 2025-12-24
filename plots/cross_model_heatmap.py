@@ -73,8 +73,8 @@ def plot_heatmaps_from_directory(
     gs = fig.add_gridspec(
         rows,
         cols + 1,
-        width_ratios=[1] * cols + [0.05],
-        wspace=0.25,
+        width_ratios=[1] * cols + [0.035],
+        wspace=0.15,
         hspace=0.15,
     )
 
