@@ -6,14 +6,15 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import typer
-from matplotlib.axes import Axes
+import matplotlib.axes as axes
+from matplotlib.colors import Normalize
 
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
 cmap = sns.diverging_palette(230, 20, as_cmap=True)
 
 
-def _draw_heatmap(ax: Axes, df: pd.DataFrame, show_cbar: bool = True):
+def _draw_heatmap(ax: axes.Axes, df: pd.DataFrame, show_cbar: bool = True):
     analyzers = df.index.tolist()
     mask = np.eye(len(analyzers), dtype=bool)
 
@@ -64,28 +65,44 @@ def plot_heatmaps_from_directory(
 
     cols = 3
     rows = math.ceil(len(csv_files) / cols)
+
     base_w, base_h = 6.0, 5.0
-    fig, axes = plt.subplots(
+
+    # +1 column reserved for colorbar
+    fig = plt.figure(figsize=(base_w * cols * scale + 0.6, base_h * rows * scale))
+    gs = fig.add_gridspec(
         rows,
-        cols,
-        figsize=(base_w * cols * scale, base_h * rows * scale),
-        gridspec_kw={"wspace": 0.05, "hspace": 0.15},
+        cols + 1,
+        width_ratios=[1] * cols + [0.05],
+        wspace=0.25,
+        hspace=0.15,
     )
 
-    axes_flat = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
+    heatmap_axes = []
+    for r in range(rows):
+        for c in range(cols):
+            idx = r * cols + c
+            if idx >= len(csv_files):
+                continue
+            ax = fig.add_subplot(gs[r, c])
+            heatmap_axes.append(ax)
 
-    for idx, csv_path in enumerate(csv_files):
-        df = pd.read_csv(csv_path, index_col=0)
-        ax = axes_flat[idx]
-        _draw_heatmap(ax, df, show_cbar=(idx == len(csv_files) - 1))
-        ax.set_title(csv_path.stem)
-        ax.set_xlabel("Target Analyzer")
-        ax.set_ylabel("Source Analyzer")
+            df = pd.read_csv(csv_files[idx], index_col=0)
+            _draw_heatmap(ax, df, show_cbar=False)
+            ax.set_title(csv_files[idx].stem)
+            ax.set_xlabel("Target Analyzer")
+            ax.set_ylabel("Source Analyzer")
 
-    for idx in range(len(csv_files), rows * cols):
-        axes_flat[idx].axis("off")
+    # Colorbar axis (single, shared)
+    cax = fig.add_subplot(gs[:, -1])
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=Normalize(0, 1))
+    sm.set_array([])
+    fig.colorbar(sm, cax=cax, label="Escape Success Rate")
 
-    # plt.tight_layout(pad=0.4, w_pad=0.2, h_pad=0.2)
+    cax.set_frame_on(False)
+    for spine in cax.spines.values():
+        spine.set_visible(False)
+
     plt.savefig(output_path, dpi=500, bbox_inches="tight")
 
 
