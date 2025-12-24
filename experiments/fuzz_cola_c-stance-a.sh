@@ -3,9 +3,9 @@
 set -euo pipefail
 
 uv run src/run_fuzz.py \
-    sem16 \
+    c-stance-a \
     cola \
-    results/cola+gemini-2.5-flash-lite+sem16.jsonl \
+    results/cola+gemini-2.5-flash-lite+c-stance-a.jsonl \
     --cls-model gemini-2.5-flash-lite \
     --fuzzer-model gemini-2.5-flash-lite \
     --schedule priority \
