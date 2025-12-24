@@ -16,7 +16,8 @@ No Git submodules are needed for datasets.
 ### Python
 
 We use Python 3.10.
-We recommend using [uv](https://docs.astral.sh/uv/getting-started/installation/) to manage your Python dependencies.
+We recommend using [uv](https://docs.astral.sh/uv/getting-started/installation/)
+to manage your Python dependencies.
 
 ```sh
 cd ContentFuzz
@@ -68,3 +69,13 @@ uv run src/eval_fuzz.py fuzz/encoder+saved_models--FacebookAI--roberta-base+vast
 
 If you encounter CUDA out-of-memory errors,
 please adjust the batch sizes in `src/contentfuzz/evaluate.py` accordingly.
+
+### Comparison to Other Methods
+
+We also provide scripts to run other baseline methods for comparison as submodules.
+
+```sh
+git submodule update --init --recursive
+```
+
+Please refer to the README files in each submodule for instructions on how to run them.
