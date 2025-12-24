@@ -15,6 +15,9 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+
 
 def detect_metrics(df: pd.DataFrame) -> dict[str, dict[str, str | None]]:
     """Detect metric columns (mean/std) from the aggregated CSV."""
