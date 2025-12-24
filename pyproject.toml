@@ -20,6 +20,7 @@ dependencies = [
     "orjsonl>=1.0.0",
     "pandas>=2.3.2",
     "pylint>=3.3.8",
+    "reinforceattack",
     "returns[compatible-mypy]>=0.26.0",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
@@ -94,3 +95,6 @@ dev = ["pytest-cov>=6.2.1", "pytest-profiling>=1.8.1", "pytest-xdist>=3.8.0"]
 
 [tool.ruff]
 exclude = ["tests/"]
+
+[tool.uv.sources]
+reinforceattack = { path = "ReinforceAttack" }
