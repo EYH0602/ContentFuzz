@@ -1,3 +1,6 @@
 [submodule "BERT-Attack"]
 	path = BERT-Attack
 	url = https://github.com/EYH0602/BERT-Attack.git
+[submodule "ReinforceAttack"]
+	path = ReinforceAttack
+	url = https://github.com/EYH0602/ReinforceAttack.git

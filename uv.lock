@@ -696,7 +696,7 @@ wheels = [
 
 [[package]]
 name = "datasets"
-version = "4.4.1"
+version = "4.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },
@@ -715,9 +715,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/93/bf/0dae295d6d1ba0b1a200a9dd216838464b5bbd05da01407cb1330b377445/datasets-4.4.1.tar.gz", hash = "sha256:80322699aa8c0bbbdb7caa87906da689c3c2e29523cff698775c67f28fdab1fc", size = 585341 }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/54/9359803da96bc65439a28fbb014dc2c90b7d4d8034a93b72362b0d40191f/datasets-4.4.2.tar.gz", hash = "sha256:9de16e415c4ba4713eac0493f7c7dc74f3aa21599297f00cc6ddab409cb7b24b", size = 586474 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/5e/6f8d874366788ad5d549e9ba258037d974dda6e004843be1bda794571701/datasets-4.4.1-py3-none-any.whl", hash = "sha256:c1163de5211e42546079ab355cc0250c7e6db16eb209ac5ac6252f801f596c44", size = 511591 },
+    { url = "https://files.pythonhosted.org/packages/7b/b5/fefa518c809de7bced5cddb7c21c010da66fa2ae494bda96844a280cc6ce/datasets-4.4.2-py3-none-any.whl", hash = "sha256:6f5ef3417504d9cd663c71c1b90b9a494ff4c2076a2cd6a6e40ceee6ad95befc", size = 512268 },
 ]
 
 [[package]]
@@ -1343,6 +1343,14 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/aa/51/2cb4468b3448a8385ebcd15059d325c9ce67df4e2758d133ab9442b19834/jiter-0.12.0-cp314-cp314t-win32.whl", hash = "sha256:8bbcfe2791dfdb7c5e48baf646d37a6a3dcb5a97a032017741dea9f817dca183", size = 205110 },
     { url = "https://files.pythonhosted.org/packages/b2/c5/ae5ec83dec9c2d1af805fd5fe8f74ebded9c8670c5210ec7820ce0dbeb1e/jiter-0.12.0-cp314-cp314t-win_amd64.whl", hash = "sha256:2fa940963bf02e1d8226027ef461e36af472dea85d36054ff835aeed944dd873", size = 205223 },
     { url = "https://files.pythonhosted.org/packages/97/9a/3c5391907277f0e55195550cf3fa8e293ae9ee0c00fb402fec1e38c0c82f/jiter-0.12.0-cp314-cp314t-win_arm64.whl", hash = "sha256:506c9708dd29b27288f9f8f1140c3cb0e3d8ddb045956d7757b1fa0e0f39a473", size = 185564 },
+    { url = "https://files.pythonhosted.org/packages/fe/54/5339ef1ecaa881c6948669956567a64d2670941925f245c434f494ffb0e5/jiter-0.12.0-graalpy311-graalpy242_311_native-macosx_10_12_x86_64.whl", hash = "sha256:4739a4657179ebf08f85914ce50332495811004cc1747852e8b2041ed2aab9b8", size = 311144 },
+    { url = "https://files.pythonhosted.org/packages/27/74/3446c652bffbd5e81ab354e388b1b5fc1d20daac34ee0ed11ff096b1b01a/jiter-0.12.0-graalpy311-graalpy242_311_native-macosx_11_0_arm64.whl", hash = "sha256:41da8def934bf7bec16cb24bd33c0ca62126d2d45d81d17b864bd5ad721393c3", size = 305877 },
+    { url = "https://files.pythonhosted.org/packages/a1/f4/ed76ef9043450f57aac2d4fbeb27175aa0eb9c38f833be6ef6379b3b9a86/jiter-0.12.0-graalpy311-graalpy242_311_native-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9c44ee814f499c082e69872d426b624987dbc5943ab06e9bbaa4f81989fdb79e", size = 340419 },
+    { url = "https://files.pythonhosted.org/packages/21/01/857d4608f5edb0664aa791a3d45702e1a5bcfff9934da74035e7b9803846/jiter-0.12.0-graalpy311-graalpy242_311_native-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cd2097de91cf03eaa27b3cbdb969addf83f0179c6afc41bbc4513705e013c65d", size = 347212 },
+    { url = "https://files.pythonhosted.org/packages/cb/f5/12efb8ada5f5c9edc1d4555fe383c1fb2eac05ac5859258a72d61981d999/jiter-0.12.0-graalpy312-graalpy250_312_native-macosx_10_12_x86_64.whl", hash = "sha256:e8547883d7b96ef2e5fe22b88f8a4c8725a56e7f4abafff20fd5272d634c7ecb", size = 309974 },
+    { url = "https://files.pythonhosted.org/packages/85/15/d6eb3b770f6a0d332675141ab3962fd4a7c270ede3515d9f3583e1d28276/jiter-0.12.0-graalpy312-graalpy250_312_native-macosx_11_0_arm64.whl", hash = "sha256:89163163c0934854a668ed783a2546a0617f71706a2551a4a0666d91ab365d6b", size = 304233 },
+    { url = "https://files.pythonhosted.org/packages/8c/3e/e7e06743294eea2cf02ced6aa0ff2ad237367394e37a0e2b4a1108c67a36/jiter-0.12.0-graalpy312-graalpy250_312_native-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d96b264ab7d34bbb2312dedc47ce07cd53f06835eacbc16dde3761f47c3a9e7f", size = 338537 },
+    { url = "https://files.pythonhosted.org/packages/2f/9c/6753e6522b8d0ef07d3a3d239426669e984fb0eba15a315cdbc1253904e4/jiter-0.12.0-graalpy312-graalpy250_312_native-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c24e864cb30ab82311c6425655b0cdab0a98c5d973b065c66a3f020740c2324c", size = 346110 },
 ]
 
 [[package]]
