@@ -38,10 +38,20 @@ def main(
     output_result_path: str | None = None,
     batch_size: int = 1,
 ) -> None:
-    """Main entry point to run Stance Analysis in ContentFuzz.
+    """Run stance classification for a dataset/analyzer pair.
 
-    Usage:
-    python src/run_cls.py -h
+    Args:
+        dataset_name: One of `c-stance-a`, `c-stance-b`, `sem16`, or `vast`.
+        analyzer_name: Analyzer implementation (`zeroshot`, `cola`, or `encoder`).
+        model: LLM identifier passed to the analyzer; defaults to Gemini Flash Lite.
+        sample_n: If provided, randomly sample that many rows before analysis.
+        output_result_path: Optional JSONL path for incremental results; defaults
+            to `results/{analyzer}+{model}+{dataset}.jsonl`.
+        batch_size: Number of samples to analyze in each async batch.
+
+    The function loads the requested dataset split, resumes from any partial
+    results that already exist on disk, executes batch generation, and finally
+    prints accuracy/F1 metrics derived from the saved JSONL file.
     """
 
     if output_result_path is None:
