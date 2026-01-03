@@ -50,10 +50,20 @@ def main(
     output_result_path: str | None = None,
     batch_size: int = 1,
 ) -> None:
-    """Run stance analysis using results from another analyzer.
+    """Re-score successful fuzzed posts with a different analyzer/model combo.
 
-    Usage:
-        python src/run_cross_model.py -h
+    Args:
+        dataset_name: Dataset identifier that matches the fuzzed tasks.
+        analyzer_name: Analyzer literal (`zeroshot`, `cola`, or `encoder`).
+        input_result_path: JSONL output from a previous fuzzing run. Only rows
+            that flipped the original classifier are replayed.
+        model: LLM identifier to pass to the analyzer.
+        output_result_path: Optional JSONL file where new predictions are saved.
+        batch_size: Number of tasks to send to the analyzer concurrently.
+
+    The function reads fuzzing outputs, extracts the altered text, skips rows
+    that were already scored (based on the output JSONL), runs the requested
+    analyzer, and prints the resulting cross-model escape success rate (ESR).
     """
 
     if output_result_path is None:

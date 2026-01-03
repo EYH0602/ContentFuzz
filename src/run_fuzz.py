@@ -1,45 +1,50 @@
 import argparse
-import os
-from typing import get_args
-import random
 import logging
+import os
+import random
 import sys
+from typing import get_args
 
-from returns.result import Success, Failure
-from orjsonl import orjsonl
-from tqdm import tqdm
 import orjson
+from orjsonl import orjsonl
+from returns.result import Failure, Success
+from tqdm import tqdm
+
+from contentfuzz.cls import COLA, Analyzer, Encoder, StanceAnalyzer, ZeroshotAnalyzer
 from contentfuzz.evaluate import (
-    load_gen_results,
-    get_correct_tasks,
-    compute_metrics,
-    print_eval_metrics,
     compute_fuzz_metrics,
+    compute_metrics,
+    get_correct_tasks,
+    load_gen_results,
+    print_eval_metrics,
+)
+from contentfuzz.fuzz import Fuzzer, Mutator
+from contentfuzz.fuzz.seed_scheduler import (
+    FIFOScheduler,
+    PriorityRandomScheduler,
+    PriorityScheduler,
+    RandomScheduler,
+    SchedulerChoice,
+    SeedScheduler,
 )
 from contentfuzz.stance_dataset import (
+    Dataset,
+    DatasetLangMap,
+    StanceDataEntry,
+    StanceDataset,
     load_c_stance,
     load_sem16,
     load_vast,
-    StanceDataEntry,
-    Dataset,
-    StanceDataset,
-    DatasetLangMap,
 )
-from contentfuzz.fuzz import Mutator, Fuzzer
-from contentfuzz.fuzz.seed_scheduler import (
-    SchedulerChoice,
-    RandomScheduler,
-    PriorityScheduler,
-    FIFOScheduler,
-    PriorityRandomScheduler,
-    SeedScheduler,
-)
-from contentfuzz.cls import ZeroshotAnalyzer, Analyzer, StanceAnalyzer, Encoder, COLA
-from contentfuzz.utils import get_default_atk_output_path, SEED, get_skip_cnt
+from contentfuzz.utils import SEED, get_default_atk_output_path, get_skip_cnt
 
 
 def get_fuzzer_state_path(attack_output_path: str) -> str:
-    """Derive the path for storing serialized fuzzer state."""
+    """Return the JSON file path that stores temperature scheduling statistics.
+
+    We keep the base of the attack output file and append `.fuzzer_stat.json` so
+    users can correlate scheduler state with the corresponding fuzz results.
+    """
     base, ext = os.path.splitext(attack_output_path)
     if ext == ".jsonl":
         return f"{base}.fuzzer_stat.json"
@@ -59,10 +64,26 @@ def main(  # pylint: disable=too-many-locals, too-many-arguments, R0917, R0915
     schedule: SchedulerChoice = "priority",
     n_iters: int = 300,
 ) -> None:
-    """Main entry point to run fuzzing in ContentFuzz
+    """Run the mutation-based fuzzing loop on correctly classified tasks.
 
-    Usage:
-    python src/run_fuzz.py -h
+    Args:
+        dataset_name: Dataset name matching the baseline classification run.
+        analyzer_name: Analyzer used to score mutated posts (`zeroshot`, `cola`,
+            or `encoder`). The analyzer model defaults to `cls_model`.
+        cls_output_path: JSONL file with baseline classifier outputs.
+        fuzzer_model: LLM used by the `Mutator` to rewrite text.
+        cls_model: LLM used when re-scoring fuzzed candidates.
+        attack_output_path: Where to write fuzz results (auto-derived if None).
+        temperature: Optional fixed sampling temperature; when omitted the
+            mutator enables adaptive temperature scheduling.
+        mutate_n: Number of rewrites to request per iteration.
+        sample_n: Optional number of correctly classified tasks to fuzz.
+        schedule: Seed scheduler to prioritize candidates.
+        n_iters: Maximum fuzzing iterations per task before giving up.
+
+    The function restores/respects partially written outputs, streams new fuzzed
+    samples to JSONL, prints evaluation metrics, and records scheduler statistics
+    inside a `.fuzzer_stat.json` companion file.
     """
 
     if attack_output_path is None:
