@@ -1,9 +1,10 @@
 import orjson
-from returns.result import Success, Failure
+from returns.result import Failure, Success
+
+from contentfuzz.cls import Encoder
 from contentfuzz.fuzz import Fuzzer, Mutator
 from contentfuzz.fuzz.seed_scheduler import PriorityScheduler
 from contentfuzz.stance_dataset import StanceDataEntry
-from contentfuzz.cls import Encoder
 
 
 def main():
@@ -14,7 +15,7 @@ def main():
         "text": "I am human. I look forward to the extinction of humanity with eager anticipation. We deserve nothing less.",
     }
     mutator = Mutator()
-    model_path = "saved_models/FacebookAI/roberta-base+sem16"
+    model_path = "saved_models/FacebookAI/roberta-base/sem16"
     analyzer = Encoder(model_path)
     scheduler = PriorityScheduler()
     fuzzer = Fuzzer(analyzer, mutator, scheduler)
