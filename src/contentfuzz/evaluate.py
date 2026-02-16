@@ -71,6 +71,22 @@ class PerplexityRatio(TypedDict):
     mean_of_ratios: float | None
 
 
+class NLIResult(TypedDict):
+    """NLI classification distribution"""
+
+    entailment: float
+    neutral: float
+    contradiction: float
+    n_pairs: int
+
+
+class NLIBidirectional(TypedDict):
+    """Bidirectional NLI results"""
+
+    forward: NLIResult  # premise=original, hypothesis=rewrite
+    backward: NLIResult  # premise=rewrite, hypothesis=original
+
+
 class FuzzMetrics(TypedDict):
     """Evaluation metrics for fuzzing performance"""
 
@@ -79,6 +95,7 @@ class FuzzMetrics(TypedDict):
     bertscore: BERTScore | None
     perplexity: PerplexityRatio | None
     mauve: float | None
+    nli: NLIBidirectional | None
 
 
 def load_gen_results(file_path: str) -> pd.DataFrame:
@@ -341,12 +358,78 @@ def compute_bertscore(
     }
 
 
+@cache
+def _get_nli_model(model_name: str):
+    from sentence_transformers import CrossEncoder
+
+    return CrossEncoder(model_name)
+
+
+def _nli_distribution(scores: np.ndarray, label_mapping: dict[int, str]) -> NLIResult:
+    """Convert raw NLI scores to a percentage distribution."""
+    preds = scores.argmax(axis=1)
+    n = len(preds)
+    counts = {label: 0 for label in ("entailment", "neutral", "contradiction")}
+    for pred in preds:
+        counts[label_mapping[int(pred)]] += 1
+    return {
+        "entailment": round(counts["entailment"] / n * 100, 2),
+        "neutral": round(counts["neutral"] / n * 100, 2),
+        "contradiction": round(counts["contradiction"] / n * 100, 2),
+        "n_pairs": n,
+    }
+
+
+def compute_nli(
+    orig_posts: list[str],
+    fuzzed_posts: list[str],
+    lang: Language = "en",
+) -> NLIBidirectional | None:
+    """Compute bidirectional NLI entailment/contradiction distribution.
+
+    Uses a cross-encoder NLI model to classify each (original, rewrite) pair
+    as entailment, neutral, or contradiction in both directions.
+    """
+    if not orig_posts or not fuzzed_posts:
+        return None
+
+    model_name: str
+    # label ordering depends on the model
+    label_mapping: dict[int, str]
+    match lang:
+        case "en":
+            model_name = "cross-encoder/nli-deberta-v3-large"
+            label_mapping = {0: "contradiction", 1: "entailment", 2: "neutral"}
+        case "zh":
+            model_name = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+            label_mapping = {0: "entailment", 1: "neutral", 2: "contradiction"}
+
+    logging.info(f"Computing NLI using {model_name}")
+    model = _get_nli_model(model_name)
+
+    forward_pairs = list(zip(orig_posts, fuzzed_posts))
+    backward_pairs = list(zip(fuzzed_posts, orig_posts))
+
+    batch_size = 32
+    forward_scores = model.predict(forward_pairs, batch_size=batch_size)
+    backward_scores = model.predict(backward_pairs, batch_size=batch_size)
+
+    forward_scores = np.asarray(forward_scores)
+    backward_scores = np.asarray(backward_scores)
+
+    return {
+        "forward": _nli_distribution(forward_scores, label_mapping),
+        "backward": _nli_distribution(backward_scores, label_mapping),
+    }
+
+
 def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
     df: pd.DataFrame,
     lang: Language = "en",
     include_bertscore: bool = False,
     include_perplexity: bool = False,
     include_mauve: bool = False,
+    include_nli: bool = False,
 ) -> FuzzMetrics:
     """
     Compute fuzzing metrics.
@@ -364,6 +447,7 @@ def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
             "bertscore": None,
             "perplexity": None,
             "mauve": None,
+            "nli": None,
         }
 
     error_series = (
@@ -422,10 +506,20 @@ def compute_fuzz_metrics(  # pylint: disable=R0913,R0914,R0917
             lang=lang,
         )
 
+    # NLI
+    nli = None
+    if include_nli:
+        nli = compute_nli(
+            orig_success_posts,
+            fuzzed_success_posts,
+            lang=lang,
+        )
+
     return {
         "attack_succ_rate": round(float(attack_succ_rate), 4),
         "iters": iter_stats,
         "bertscore": bertscore,
         "perplexity": ppl,
         "mauve": mauve_score,
+        "nli": nli,
     }
