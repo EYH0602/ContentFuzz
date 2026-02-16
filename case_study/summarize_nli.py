@@ -5,6 +5,8 @@ import argparse
 import json
 import re
 
+import pandas as pd
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -47,28 +49,39 @@ def main():
         ("forward", "Original → Rewrite"),
         ("backward", "Rewrite → Original"),
     ]:
-        print(f"**Table: NLI Analysis ({label})**\n")
-        print(
-            f"| Dataset    | Lang | N     | Entail (%) | Neutral (%) | Contradict (%) |"
-        )
-        print(
-            f"|------------|------|-------|------------|-------------|----------------|"
-        )
-
+        rows = []
         all_entries = []
         for ds_key, ds_name, lang in row_order:
             entries = datasets[ds_key][direction]
             all_entries.extend(entries)
             n, ent, neu, con = weighted_avg(entries)
-            print(
-                f"| {ds_name:<10} | {lang}   | {n:<5} | {ent:>10.2f} | {neu:>11.2f} | {con:>14.2f} |"
+            rows.append(
+                {
+                    "Dataset": ds_name,
+                    "Lang": lang,
+                    "N": n,
+                    "Entail (%)": round(ent, 2),
+                    "Neutral (%)": round(neu, 2),
+                    "Contradict (%)": round(con, 2),
+                }
             )
 
         # All row
         n, ent, neu, con = weighted_avg(all_entries)
-        print(
-            f"| {'**All**':<10} |      | {n:<5} | {ent:>10.2f} | {neu:>11.2f} | {con:>14.2f} |"
+        rows.append(
+            {
+                "Dataset": "**All**",
+                "Lang": "",
+                "N": n,
+                "Entail (%)": round(ent, 2),
+                "Neutral (%)": round(neu, 2),
+                "Contradict (%)": round(con, 2),
+            }
         )
+
+        df = pd.DataFrame(rows)
+        print(f"**Table: NLI Analysis ({label})**\n")
+        print(df.to_markdown(index=False))
         print()
 
 
