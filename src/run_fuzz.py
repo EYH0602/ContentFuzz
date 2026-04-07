@@ -228,10 +228,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         dest="cls_output_path",
-        help=(
-            "Path to baseline generation results JSONL; defaults to "
-            "results/c_stance_A_gpt-4.1-nano.jsonl."
-        ),
+        help="Path to baseline generation results JSONL produced by run_cls.py.",
     )
     parser.add_argument(
         "-ao",

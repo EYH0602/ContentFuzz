@@ -6,7 +6,7 @@ from .vast import load_vast
 from ._base import StanceDataEntry, StanceDataset
 from ..utils import Language
 
-Dataset = Literal[CSTANCEChoices, "sem16", "vast"]  # todo: add more datasets
+Dataset = Literal[CSTANCEChoices, "sem16", "vast"]
 DatasetLangMap: dict[Dataset, Language] = {
     "c-stance-a": "zh",
     "c-stance-b": "zh",
