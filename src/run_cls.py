@@ -62,7 +62,6 @@ def main(
         )
 
     random.seed(SEED)
-    # dataset only have C-STANCE for now
     dataset: StanceDataset
     match dataset_name:
         case "c-stance-a" | "c-stance-b":

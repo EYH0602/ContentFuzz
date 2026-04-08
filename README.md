@@ -1,30 +1,40 @@
 # ContentFuzz
 
-Content Fuzzing for Escaping Information Cocoons in Digital Social Media
+**Content Fuzzing for Escaping Information Cocoons on Digital Social Media**
+
+Yifeng He, Ziye Tang, Hao Chen
+
+*Findings of the Association for Computational Linguistics: ACL 2026*
+
+[[Paper]](https://yfhe.net/publications/he2026contentfuzz.pdf)
 
 ## Requirements
 
 ### Python
 
-We use Python 3.10.
+We use Python 3.10+.
 We recommend using [uv](https://docs.astral.sh/uv/getting-started/installation/)
 to manage your Python dependencies.
 
 ```sh
 cd ContentFuzz
-uv sync # create a virtual environment, and install dependencies
+uv sync # create a virtual environment and install dependencies
+```
+
+For development (linting, type checking, testing):
+
+```sh
+uv sync --group dev
 ```
 
 ### API keys
 
-Please either put the API keys in your environment variables, 
-or create a `.env` file in the
-project root with the following content.
+Please either put the API keys in your environment variables,
+or create a `.env` file in the project root.
 ContentFuzz talks to Google Gemini through two different client stacks:
 
 - Set `VERTEXAI_API_KEY` so the stance analyzers (`zeroshot`, `cola`, `encoder`) can request log probabilities from the Vertex AI endpoints.
 - Set `GEMINI_API_KEY` so the fuzzing mutator can call the public Gemini API when generating rewritten posts.
-
 
 ## Running ContentFuzz
 
@@ -86,7 +96,7 @@ uv run src/run_fuzz.py DATASET ANALYZER PATH/TO/CLS_RESULTS.jsonl \
 To inspect the fuzzing metrics once the run finishes:
 
 ```sh
-uv run src/eval_fuzz.py fuzz/encoder+saved_models--FacebookAI--roberta-base+vast+vast=gemini-2.5-flash-lite+temp-sched+priority+iters-300.jsonl
+uv run src/eval_fuzz.py fuzz/RESULTS.jsonl
 ```
 
 ### Cross-Model Evaluation
@@ -118,3 +128,20 @@ git submodule update --init --recursive
 ```
 
 Please refer to the README files in each submodule for instructions on how to run them.
+
+## Citation
+
+If you find this work useful, please cite our paper:
+
+```bibtex
+@inproceedings{he2026contentfuzz,
+  title     = {Content Fuzzing for Escaping Information Cocoons on Digital Social Media},
+  author    = {He, Yifeng and Tang, Ziye and Chen, Hao},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2026},
+  year      = {2026},
+}
+```
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE).
